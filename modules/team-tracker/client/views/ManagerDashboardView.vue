@@ -112,6 +112,22 @@
             </button>
           </div>
 
+          <!-- Field completeness banner -->
+          <div
+            v-if="!bannerDismissed && incompleteReports.length > 0 && !bulkEditing"
+            class="flex items-center gap-3 px-4 py-3 mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm"
+          >
+            <AlertTriangle class="w-4 h-4 flex-shrink-0" />
+            <span>{{ incompleteReports.length }} of {{ visibleReports.length }} {{ visibleReports.length === 1 ? 'person has' : 'people have' }} incomplete fields</span>
+            <button
+              @click="showIncompleteOnly = !showIncompleteOnly"
+              class="ml-auto text-xs font-medium text-amber-700 dark:text-amber-300 hover:underline"
+            >{{ showIncompleteOnly ? 'Show all' : 'Show incomplete only' }}</button>
+            <button @click="bannerDismissed = true" class="text-amber-500 hover:text-amber-700">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
           <div v-if="searchQuery && filteredReports.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
             No reports match "{{ searchQuery }}"
           </div>
@@ -261,7 +277,12 @@
                   </div>
 
                   <!-- DISPLAY MODE -->
-                  <div v-else class="group flex items-center gap-1.5 cursor-pointer" @click="startCellEdit(report, field)">
+                  <div
+                    v-else
+                    class="group flex items-center gap-1.5 cursor-pointer"
+                    :class="{ 'bg-red-100 dark:bg-red-700/50 rounded px-1': isFieldEmpty(report.customFields?.[field.id], field) }"
+                    @click="startCellEdit(report, field)"
+                  >
                     <template v-if="field.multiValue && field.type === 'constrained'">
                       <div class="flex flex-wrap gap-1">
                         <span
@@ -273,7 +294,7 @@
                       </div>
                     </template>
                     <template v-else-if="field.type === 'person-reference-linked'">
-                      <span v-if="resolvePersonName(report.customFields[field.id])" class="text-primary-600 dark:text-primary-400">{{ resolvePersonName(report.customFields[field.id]) }}</span>
+                      <span v-if="resolvePersonName(report.customFields?.[field.id])" class="text-primary-600 dark:text-primary-400">{{ resolvePersonName(report.customFields?.[field.id]) }}</span>
                       <span v-else class="text-gray-400 dark:text-gray-500">—</span>
                     </template>
                     <template v-else>
@@ -339,6 +360,22 @@
               @click="teamSearchQuery = ''"
               class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- Field completeness banner -->
+          <div
+            v-if="!teamBannerDismissed && incompleteTeams.length > 0 && !teamBulkEditing"
+            class="flex items-center gap-3 px-4 py-3 mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm"
+          >
+            <AlertTriangle class="w-4 h-4 flex-shrink-0" />
+            <span>{{ incompleteTeams.length }} of {{ teams.length }} {{ teams.length === 1 ? 'team has' : 'teams have' }} incomplete fields</span>
+            <button
+              @click="showIncompleteTeamsOnly = !showIncompleteTeamsOnly"
+              class="ml-auto text-xs font-medium text-amber-700 dark:text-amber-300 hover:underline"
+            >{{ showIncompleteTeamsOnly ? 'Show all' : 'Show incomplete only' }}</button>
+            <button @click="teamBannerDismissed = true" class="text-amber-500 hover:text-amber-700">
               <X class="w-4 h-4" />
             </button>
           </div>
@@ -460,7 +497,12 @@
                     </div>
 
                     <!-- DISPLAY MODE -->
-                    <div v-else class="group cursor-pointer flex items-start gap-1" @click="startTeamFieldEdit(team, field)">
+                    <div
+                      v-else
+                      class="group cursor-pointer flex items-start gap-1"
+                      :class="{ 'bg-red-100 dark:bg-red-700/50 rounded px-1': isFieldEmpty(team.metadata?.[field.id], field) }"
+                      @click="startTeamFieldEdit(team, field)"
+                    >
                       <!-- Person reference -->
                       <div v-if="field.type === 'person-reference-linked'" class="flex-1 text-left">
                         <template v-for="(uid, i) in normalizeArray(team.metadata[field.id])" :key="uid"><button
@@ -545,8 +587,8 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, inject } from 'vue'
-import { ExternalLink, Pencil, Search, X } from 'lucide-vue-next'
+import { ref, computed, reactive, onMounted, inject, watch } from 'vue'
+import { ExternalLink, Pencil, Search, X, AlertTriangle } from 'lucide-vue-next'
 import { useManagerDashboard } from '../composables/useManagerDashboard'
 import { useFieldDefinitions } from '@shared/client/composables/useFieldDefinitions'
 import { useTeams } from '@shared/client/composables/useTeams'
@@ -565,6 +607,12 @@ const { reloadRoster } = useRoster()
 const activeTab = ref('reports')
 const searchQuery = ref('')
 const teamSearchQuery = ref('')
+
+// Field completeness filter & banner state
+const showIncompleteOnly = ref(false)
+const showIncompleteTeamsOnly = ref(false)
+const bannerDismissed = ref(false)
+const teamBannerDismissed = ref(false)
 
 // Single-cell editing state
 const editingCell = ref({ uid: null, fieldId: null })
@@ -595,42 +643,83 @@ const visibleReports = computed(() =>
     : directReports.value
 )
 
+// --- Field completeness ---
+
+function isFieldEmpty(value, field) {
+  if (value === null || value === undefined || value === '') return true
+  if (Array.isArray(value) && value.length === 0) return true
+  if (field.multiValue && Array.isArray(value) && value.every(v => !v)) return true
+  return false
+}
+
+const incompleteReports = computed(() => {
+  return visibleReports.value.filter(report => {
+    return visiblePersonFields.value.some(field =>
+      isFieldEmpty(report.customFields?.[field.id], field)
+    )
+  })
+})
+
+const incompleteReportUids = computed(() => new Set(incompleteReports.value.map(r => r.uid)))
+
+const incompleteTeams = computed(() => {
+  return teams.value.filter(team => {
+    return visibleTeamFields.value.some(field =>
+      isFieldEmpty(team.metadata?.[field.id], field)
+    )
+  })
+})
+
+const incompleteTeamIds = computed(() => new Set(incompleteTeams.value.map(t => t.id)))
+
 const directReportUidSet = computed(() =>
   new Set(directReports.value.map(r => r.uid))
 )
 
 const filteredReports = computed(() => {
+  let result = visibleReports.value
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return visibleReports.value
-  return visibleReports.value.filter(r => {
-    if (r.name?.toLowerCase().includes(q)) return true
-    if (r.title?.toLowerCase().includes(q)) return true
-    if (r.teamIds?.some(id => teamById.value[id]?.name?.toLowerCase().includes(q))) return true
-    return false
-  })
+  if (q) {
+    result = result.filter(r => {
+      if (r.name?.toLowerCase().includes(q)) return true
+      if (r.title?.toLowerCase().includes(q)) return true
+      if (r.teamIds?.some(id => teamById.value[id]?.name?.toLowerCase().includes(q))) return true
+      return false
+    })
+  }
+  if (showIncompleteOnly.value) {
+    result = result.filter(r => incompleteReportUids.value.has(r.uid))
+  }
+  return result
 })
 
 const filteredTeams = computed(() => {
+  let result = teams.value
   const q = teamSearchQuery.value.trim().toLowerCase()
-  if (!q) return teams.value
-  return teams.value.filter(t => {
-    if (t.name?.toLowerCase().includes(q)) return true
-    if (t.orgKey?.toLowerCase().includes(q)) return true
-    // Search team metadata field values
-    for (const field of visibleTeamFields.value) {
-      const val = t.metadata?.[field.id]
-      if (!val) continue
-      if (typeof val === 'string' && val.toLowerCase().includes(q)) return true
-      if (Array.isArray(val) && val.some(v => {
-        if (typeof v === 'string') {
-          const resolved = referencedPeople.value[v]
-          return (resolved || v).toLowerCase().includes(q)
-        }
-        return false
-      })) return true
-    }
-    return false
-  })
+  if (q) {
+    result = result.filter(t => {
+      if (t.name?.toLowerCase().includes(q)) return true
+      if (t.orgKey?.toLowerCase().includes(q)) return true
+      // Search team metadata field values
+      for (const field of visibleTeamFields.value) {
+        const val = t.metadata?.[field.id]
+        if (!val) continue
+        if (typeof val === 'string' && val.toLowerCase().includes(q)) return true
+        if (Array.isArray(val) && val.some(v => {
+          if (typeof v === 'string') {
+            const resolved = referencedPeople.value[v]
+            return (resolved || v).toLowerCase().includes(q)
+          }
+          return false
+        })) return true
+      }
+      return false
+    })
+  }
+  if (showIncompleteTeamsOnly.value) {
+    result = result.filter(t => incompleteTeamIds.value.has(t.id))
+  }
+  return result
 })
 
 const teamsHaveMultipleOrgs = computed(() => {
@@ -733,7 +822,7 @@ function getBulkValue(uid, field) {
   const key = bulkKey(uid, field.id)
   if (key in bulkChanges) return bulkChanges[key]
   // Return current value from data
-  const raw = visibleReports.value.find(r => r.uid === uid)?.customFields[field.id] ?? null
+  const raw = visibleReports.value.find(r => r.uid === uid)?.customFields?.[field.id] ?? null
   if (field.type === 'constrained' && field.multiValue) {
     return Array.isArray(raw) ? raw : (raw ? [raw] : [])
   }
@@ -747,7 +836,7 @@ function setBulkValue(uid, fieldId, value) {
   const key = bulkKey(uid, fieldId)
   // Check if value differs from original
   const report = visibleReports.value.find(r => r.uid === uid)
-  const original = report?.customFields[fieldId] ?? null
+  const original = report?.customFields?.[fieldId] ?? null
   const field = visiblePersonFields.value.find(f => f.id === fieldId)
 
   let originalNormalized
@@ -845,7 +934,7 @@ async function saveAllChanges() {
 // --- Single-cell editing ---
 
 function startCellEdit(report, field) {
-  const raw = report.customFields[field.id] ?? null
+  const raw = report.customFields?.[field.id] ?? null
   if (field.type === 'constrained' && field.multiValue) {
     editValue.value = Array.isArray(raw) ? [...raw] : (raw ? [raw] : [])
   } else if (field.type === 'person-reference-linked') {
@@ -900,13 +989,13 @@ function cancelTeamEdit() {
 // --- Display helpers ---
 
 function displaySingleValue(report, field) {
-  const raw = report.customFields[field.id]
+  const raw = report.customFields?.[field.id]
   const val = Array.isArray(raw) ? raw[0] : raw
   return val || '—'
 }
 
 function displayMultiValues(report, field) {
-  const raw = report.customFields[field.id]
+  const raw = report.customFields?.[field.id]
   return Array.isArray(raw) ? raw : (raw ? [raw] : [])
 }
 
@@ -1125,6 +1214,23 @@ async function saveAllTeamChanges() {
     saving.value = false
   }
 }
+
+watch(activeTab, () => {
+  showIncompleteOnly.value = false
+  showIncompleteTeamsOnly.value = false
+  bannerDismissed.value = false
+  teamBannerDismissed.value = false
+})
+
+watch(bulkEditing, () => {
+  showIncompleteOnly.value = false
+  showIncompleteTeamsOnly.value = false
+})
+
+watch(teamBulkEditing, () => {
+  showIncompleteOnly.value = false
+  showIncompleteTeamsOnly.value = false
+})
 
 onMounted(() => {
   load()
