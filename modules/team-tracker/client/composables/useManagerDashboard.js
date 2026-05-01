@@ -6,6 +6,7 @@ const directReports = ref([])
 const indirectReports = ref([])
 const teams = ref([])
 const allOrgTeams = ref([])
+const allPeople = ref([])
 const referencedPeople = ref({})
 const fieldDefinitions = ref({ person: [], team: [] })
 const loading = ref(false)
@@ -26,6 +27,7 @@ export function useManagerDashboard() {
       indirectReports.value = data.indirectReports || []
       teams.value = data.teams || []
       allOrgTeams.value = data.allOrgTeams || []
+      allPeople.value = data.allPeople || []
       referencedPeople.value = data.referencedPeople || {}
       fieldDefinitions.value = data.fieldDefinitions || { person: [], team: [] }
       reason.value = data.reason || null
@@ -46,6 +48,7 @@ export function useManagerDashboard() {
     indirectReports,
     teams,
     allOrgTeams,
+    allPeople,
     referencedPeople,
     fieldDefinitions,
     loading,

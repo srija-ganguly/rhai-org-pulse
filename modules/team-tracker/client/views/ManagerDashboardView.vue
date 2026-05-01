@@ -228,7 +228,7 @@
                   </div>
 
                   <!-- SINGLE-CELL EDIT MODE -->
-                  <div v-else-if="editingCell.uid === report.uid && editingCell.fieldId === field.id" class="relative min-w-[160px]">
+                  <div v-else-if="editingCell.uid === report.uid && editingCell.fieldId === field.id" class="editing-cell relative min-w-[160px]">
                     <ConstrainedAutocomplete
                       v-if="field.type === 'constrained' && field.allowedValues"
                       :model-value="editValue"
@@ -395,7 +395,7 @@
                     </div>
 
                     <!-- SINGLE-CELL EDIT MODE -->
-                    <div v-else-if="editingTeamCell.teamId === team.id && editingTeamCell.fieldId === field.id" class="relative min-w-[160px]">
+                    <div v-else-if="editingTeamCell.teamId === team.id && editingTeamCell.fieldId === field.id" class="editing-cell relative min-w-[160px]">
                       <ConstrainedAutocomplete
                         v-if="field.type === 'constrained' && field.allowedValues"
                         :model-value="editTeamFieldValue"
@@ -478,7 +478,7 @@
                     </div>
 
                     <!-- SINGLE-CELL EDIT MODE -->
-                    <div v-else-if="editingTeamCell.teamId === team.id && editingTeamCell.fieldId === '__boards__'" class="relative min-w-[160px]">
+                    <div v-else-if="editingTeamCell.teamId === team.id && editingTeamCell.fieldId === '__boards__'" class="editing-cell relative min-w-[160px]">
                       <input
                         v-model="editTeamFieldValue"
                         class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
@@ -537,7 +537,7 @@ import PersonAutocomplete from '../components/PersonAutocomplete.vue'
 
 const nav = inject('moduleNav', null)
 
-const { directReports, indirectReports, teams, allOrgTeams, referencedPeople, fieldDefinitions, loading, error, reason, includeIndirect, load, refresh } = useManagerDashboard()
+const { directReports, indirectReports, teams, allOrgTeams, allPeople, referencedPeople, fieldDefinitions, loading, error, reason, includeIndirect, load, refresh } = useManagerDashboard()
 const { updatePersonFields } = useFieldDefinitions()
 const { updateTeamFields } = useTeams()
 const { reloadRoster } = useRoster()
@@ -621,12 +621,14 @@ const teamById = computed(() => {
 const allPeopleForEditor = computed(() => {
   const seen = new Set()
   const result = []
-  for (const r of visibleReports.value) {
-    if (!seen.has(r.uid)) {
-      seen.add(r.uid)
-      result.push({ uid: r.uid, name: r.name })
+  // Use the full registry people list so person-reference fields (e.g. Product Manager) can find anyone
+  for (const p of allPeople.value) {
+    if (!seen.has(p.uid)) {
+      seen.add(p.uid)
+      result.push(p)
     }
   }
+  // Include referenced people not already in registry (edge case: inactive person still referenced)
   for (const [uid, name] of Object.entries(referencedPeople.value)) {
     if (!seen.has(uid)) {
       seen.add(uid)

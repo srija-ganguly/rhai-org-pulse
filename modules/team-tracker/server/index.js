@@ -650,6 +650,13 @@ module.exports = function registerRoutes(router, context) {
       }
     }
 
+    // Build slim people list from full registry for person-reference autocomplete
+    const allPeople = [];
+    for (const [uid, person] of Object.entries(registry.people)) {
+      if (person.status !== 'active') continue;
+      allPeople.push({ uid, name: person.name || uid, title: person.title || '' });
+    }
+
     const response = {
       manager: managerPerson ? {
         uid: req.userUid,
@@ -659,6 +666,7 @@ module.exports = function registerRoutes(router, context) {
       directReports,
       teams: purview.teams,
       allOrgTeams,
+      allPeople,
       referencedPeople,
       fieldDefinitions: {
         person: personFieldDefs,

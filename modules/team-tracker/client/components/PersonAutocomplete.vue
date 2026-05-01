@@ -79,7 +79,7 @@ function searchLdap(term) {
         _fromLdap: true
       }))
     } catch (err) {
-      if (err.status === 503 || err.message?.includes('503')) {
+      if (err.status === 500 || err.status === 503 || err.message?.includes('503')) {
         ldapAvailable.value = false
       }
       // 429 or other errors: silently suppress LDAP section
@@ -94,6 +94,10 @@ function onInput() {
   isOpen.value = true
   highlightedIndex.value = -1
   searchLdap(searchText.value)
+}
+
+function onBlur() {
+  setTimeout(() => { isOpen.value = false }, 200)
 }
 
 async function selectPerson(person) {
@@ -163,7 +167,7 @@ function getOptionIndex(localIdx, isLdap) {
       :placeholder="placeholder"
       @input="onInput"
       @focus="isOpen = true"
-      @blur="setTimeout(() => isOpen = false, 200)"
+      @blur="onBlur"
       @keydown="onKeydown"
     >
     <ul
