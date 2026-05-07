@@ -137,7 +137,10 @@
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">AI SDLC Materials</h2>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">RFE Builder</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          RFE Builder
+          <a href="https://app.slack.com/client/E030G10V24F/C0AMPLH0Y9G" target="_blank" rel="noopener" class="ml-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">#wg-rhai-rfe-builder</a>
+        </h3>
         <div class="flex flex-wrap gap-4">
           <a
             v-for="link in rfeLinks"
@@ -155,7 +158,18 @@
       </div>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">AI Quality</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          STRAT Builder
+          <a href="https://app.slack.com/client/E030G10V24F/C0APA0E2J3Z" target="_blank" rel="noopener" class="ml-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">#wg-rhai-strat-refine-review</a>
+        </h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Content coming soon.</p>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          AI Quality
+          <a href="https://app.slack.com/client/E030G10V24F/C0ANMTUF5FW" target="_blank" rel="noopener" class="ml-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">#wg-rhai-quality-eng-builder</a>
+        </h3>
         <div class="flex flex-wrap gap-4">
           <a
             v-for="link in aiQualityLinks"
@@ -176,7 +190,10 @@
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-8 mb-3">AI Workflows Enablement</h2>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Jira Autofix</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          Jira Autofix
+          <a href="https://app.slack.com/client/E030G10V24F/C0ASJ32PJ0N" target="_blank" rel="noopener" class="ml-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">#wg-rhai-ai-first-code-autofix</a>
+        </h3>
         <div class="flex flex-wrap gap-4">
           <a
             v-for="link in jiraAutofixLinks"
@@ -197,7 +214,10 @@
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-8 mb-3">Other Enablement</h2>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Agent Eval Harness</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          Agent Eval Harness
+          <a href="https://app.slack.com/client/E030G10V24F/C0B01HA68KC" target="_blank" rel="noopener" class="ml-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">#wg-agent-eval-harness</a>
+        </h3>
         <div class="flex flex-wrap gap-4">
           <a
             v-for="link in agentEvalHarnessLinks"
