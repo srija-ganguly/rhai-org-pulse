@@ -96,6 +96,13 @@ function createAuthMiddleware(readFromStorage, writeToStorage, options = {}) {
           break;
         }
       }
+      // Fallback: match by UID when email domain doesn't match (e.g. user@cluster.local)
+      if (!req.userUid && req.userEmail) {
+        const localPart = req.userEmail.split('@')[0];
+        if (localPart && registry.people[localPart] && registry.people[localPart].status === 'active') {
+          req.userUid = localPart;
+        }
+      }
     }
     req.isTeamAdmin = roleStore ? roleStore.hasRole(req.userEmail, 'team-admin') : false;
     req.permissionTier = getPermissionTier(req.userUid, registry, req.isAdmin, req.isTeamAdmin);
