@@ -713,7 +713,7 @@ const backupDotClass = computed(() => {
 })
 
 watch(activeTab, (val) => {
-  if (val === 'backups' && backupsList.value.length === 0 && !backupsLoading.value) {
+  if (val === 'backups' && isAdmin.value && backupsList.value.length === 0 && !backupsLoading.value) {
     fetchBackups()
   }
 })
