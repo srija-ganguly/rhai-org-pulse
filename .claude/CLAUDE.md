@@ -278,6 +278,9 @@ In production, all routes are authenticated via OpenShift OAuth proxy. The proxy
 - `/api/admin/roster-sync/status` — sync status (running/last result, includes `phase`, `phaseLabel`, `metadataSync`, `stale` fields)
 - `/api/modules/team-tracker/sheets/discover` — discover sheet names in a Google Spreadsheet (admin, requires `spreadsheetId` query param)
 - `/api/modules/release-analysis/product-pages/products` — Product Pages product list for autocomplete (admin, includes authStatus)
+- `/api/modules/release-analysis/conforma/releases` — list all conforma exception releases (auth)
+- `/api/modules/release-analysis/conforma/releases/:version` — single release conforma detail (auth)
+- `/api/modules/release-analysis/conforma/status` — conforma data status: fetchedAt, count, minDate (auth)
 - `/api/modules/feature-traffic/features` — list features with filters (status, version, health, sort)
 - `/api/modules/feature-traffic/features/:key` — full feature detail
 - `/api/modules/feature-traffic/versions` — unique fix versions
@@ -341,6 +344,7 @@ In production, all routes are authenticated via OpenShift OAuth proxy. The proxy
 - `/api/modules/team-tracker/snapshots/generate` — generate snapshots for all teams (admin)
 - `/api/modules/feature-traffic/refresh` — trigger manual data refresh from GitLab CI (admin)
 - `/api/modules/feature-traffic/config` — save fetch configuration (admin)
+- `/api/modules/release-analysis/conforma/bulk` — full replace of all conforma releases `{ releases: [...], minDate? }` (admin, called by pipeline; previous data is overwritten entirely)
 - `/api/modules/ai-impact/assessments/bulk` — bulk upsert assessments (admin)
 - `/api/modules/ai-impact/features/bulk` — bulk upsert features (admin)
 - `/api/health-metrics/track` — record a page view event. Body: `{ page }` (authenticated, rate-limited 30/min per user)
@@ -373,6 +377,7 @@ In production, all routes are authenticated via OpenShift OAuth proxy. The proxy
 - `/api/admin/tokens/:id` — revoke any API token (admin)
 - `/api/admin/messages/:id` — remove a stored announcement (admin)
 - `/api/modules/team-tracker/snapshots` — delete all stored snapshots (admin)
+- `/api/modules/release-analysis/conforma` — clear all conforma exception data (admin)
 - `/api/modules/ai-impact/assessments` — clear all assessment data (admin)
 - `/api/modules/ai-impact/features` — clear all feature data (admin)
 - `/api/modules/team-tracker/structure/teams/:teamId` — delete a team (admin/team-admin)

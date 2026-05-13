@@ -1,6 +1,7 @@
 const { jiraRequest, JIRA_HOST, fetchAllJqlResults } = require('../../../shared/server/jira')
 const { getConfig, saveConfig, deleteConfig } = require('./config')
 const { fetchProductsByShortname, fetchAllProducts, getProductPagesToken, getAuthStatus } = require('./product-pages')
+const registerConformaRoutes = require('./conforma')
 
 const DEMO_MODE = process.env.DEMO_MODE === 'true'
 
@@ -980,6 +981,8 @@ async function runFullAnalysis(storage, config) {
 const CACHE_MAX_AGE_MS = 60 * 60 * 1000 // 1 hour
 
 module.exports = function registerRoutes(router, context) {
+  registerConformaRoutes(router, context)
+
   const { storage, requireAuth, requireAdmin } = context
   const { readFromStorage, writeToStorage } = storage
 
