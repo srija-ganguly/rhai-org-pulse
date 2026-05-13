@@ -765,13 +765,13 @@ export default {
       this.isRefreshing = true
       try {
         const refreshes = [refreshMetrics({ scope: 'all', force, sources })]
-        if (this.enabledBuiltInSlugs?.includes('allocation-tracker')) {
+        if (this.enabledBuiltInSlugs?.includes('team-tracker')) {
           refreshes.push(
-            apiRequest('/modules/allocation-tracker/refresh', {
+            apiRequest('/modules/team-tracker/allocation/refresh', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ hardRefresh: force })
-            }).catch(err => console.error('Allocation tracker refresh failed:', err))
+            }).catch(err => console.error('Allocation refresh failed:', err))
           )
         }
         await Promise.all(refreshes)

@@ -154,8 +154,9 @@ module.exports = function registerOrgTeamsRoutes(router, context) {
         team.metadata = structure.metadata || {};
         // Priority cascade: prefer structure boards over metadata boards
         if (Array.isArray(structure.boards)) {
-          team.boards = structure.boards;
-          team.boardUrls = structure.boards.map(b => b.url);
+          // Backfill boardId for boards saved before extraction was added
+          team.boards = structure.boards.map(b => b.boardId != null ? b : { ...b, boardId: teamStore.extractBoardId(b.url) });
+          team.boardUrls = team.boards.map(b => b.url);
         }
       }
     }
