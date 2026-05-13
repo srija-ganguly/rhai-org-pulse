@@ -1514,6 +1514,12 @@ module.exports = function registerRoutes(router, context) {
       if (b.url.length > 2048) {
         return res.status(400).json({ error: 'Board url exceeds maximum length of 2048 characters' });
       }
+      if (b.boardId !== undefined && (typeof b.boardId !== 'number' || !Number.isInteger(b.boardId) || b.boardId < 0)) {
+        return res.status(400).json({ error: 'boardId must be a non-negative integer' });
+      }
+      if (b.sprintFilter !== undefined && typeof b.sprintFilter !== 'string') {
+        return res.status(400).json({ error: 'sprintFilter must be a string' });
+      }
     }
     try {
       const result = teamStore.updateTeamBoards(storage, req.params.teamId, boards, req.auditActor);
@@ -3746,6 +3752,11 @@ module.exports = function registerRoutes(router, context) {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // ─── Allocation Routes ───
+
+  const registerAllocationRoutes = require('./allocation/routes');
+  registerAllocationRoutes(router, context);
 
   // ─── Diagnostics Hook ───
 

@@ -42,8 +42,8 @@ describe('updateTeamBoards', () => {
     const result = teamStore.updateTeamBoards(storage, 'team_abc', newBoards, 'admin@test.com')
 
     expect(result).toHaveLength(2)
-    expect(result[0]).toEqual({ url: 'https://jira.example.com/board/1', name: 'Board One' })
-    expect(result[1]).toEqual({ url: 'https://jira.example.com/board/2', name: 'Board Two' })
+    expect(result[0]).toEqual({ url: 'https://jira.example.com/board/1', name: 'Board One', boardId: 1 })
+    expect(result[1]).toEqual({ url: 'https://jira.example.com/board/2', name: 'Board Two', boardId: 2 })
 
     // Verify persisted data matches
     const persisted = storage._data['team-data/teams.json'].teams.team_abc.boards
@@ -148,6 +148,6 @@ describe('updateTeamBoards', () => {
     expect(entry.entityLabel).toBe('Platform')
     expect(entry.field).toBe('boards')
     expect(entry.oldValue).toEqual([{ url: 'https://jira.example.com/board/old', name: 'Old Board' }])
-    expect(entry.newValue).toEqual([{ url: 'https://jira.example.com/board/new', name: 'New Board' }])
+    expect(entry.newValue).toEqual([{ url: 'https://jira.example.com/board/new', name: 'New Board', boardId: null }])
   })
 })

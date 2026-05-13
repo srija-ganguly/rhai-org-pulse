@@ -86,6 +86,7 @@
     <JiraSyncSettings v-if="activeTab === 'jira-sync'" />
     <SnapshotSettings v-if="activeTab === 'snapshots'" />
     <AuditLogView v-if="activeTab === 'audit-log'" />
+    <AllocationSettings v-if="activeTab === 'allocation'" />
   </div>
 </template>
 
@@ -98,6 +99,7 @@ import GoogleSheetsSettings from './GoogleSheetsSettings.vue'
 import JiraSyncSettings from './JiraSyncSettings.vue'
 import SnapshotSettings from './SnapshotSettings.vue'
 import AuditLogView from './AuditLogView.vue'
+import AllocationSettings from './AllocationSettings.vue'
 import MigrationFieldConfig from './MigrationFieldConfig.vue'
 import { useSyncStatus } from '../composables/useSyncStatus'
 import { useRosterSync } from '../composables/useRosterSync'
@@ -179,7 +181,8 @@ const isInAppMode = computed(() => editTeamDataSource.value === 'in-app')
 const baseTabs = [
   { id: 'people-teams', label: 'People & Teams' },
   { id: 'jira-sync', label: 'Jira Sync' },
-  { id: 'snapshots', label: 'Snapshots' }
+  { id: 'snapshots', label: 'Snapshots' },
+  { id: 'allocation', label: '40/40/20 Allocation' }
 ]
 
 const sheetsTabs = [

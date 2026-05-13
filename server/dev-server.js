@@ -998,6 +998,9 @@ if (ttRouter && enabledSlugs.has('team-tracker')) {
     '/api/trend': '/trend',
     '/api/admin/roster-sync': '/admin/roster-sync',
     '/api/admin/jira-sync': '/admin/jira-sync',
+    '/api/modules/allocation-tracker/refresh': '/allocation/refresh',
+    '/api/modules/allocation-tracker/refresh/status': '/allocation/refresh/status',
+    '/api/modules/allocation-tracker/classify': '/allocation/classify',
   };
 
   for (const [legacyPath, modulePath] of Object.entries(LEGACY_FORWARDS)) {

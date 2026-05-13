@@ -8,7 +8,9 @@ const {
   assignMembersBulk,
   unassignMember,
   getUnassigned,
-  updateTeamFields
+  updateTeamFields,
+  updateTeamBoards,
+  extractBoardId
 } = require('../team-store');
 
 function createMockStorage(initialData = {}) {
@@ -217,5 +219,117 @@ describe('updateTeamFields', () => {
 
     const result = updateTeamFields(storage, 'team_abc', { field_1: 'value1' }, 'admin@example.com');
     expect(result.metadata.field_1).toBe('value1');
+  });
+});
+
+describe('extractBoardId', () => {
+  it('extracts from Jira Cloud /boards/ URL', () => {
+    expect(extractBoardId('https://redhat.atlassian.net/jira/software/projects/RHOAIENG/boards/123')).toBe(123);
+  });
+
+  it('extracts from Jira Cloud /board/ URL (singular)', () => {
+    expect(extractBoardId('https://redhat.atlassian.net/jira/software/projects/RHOAIENG/board/456')).toBe(456);
+  });
+
+  it('extracts from company-managed project URL with /c/ prefix', () => {
+    expect(extractBoardId('https://redhat.atlassian.net/jira/software/c/projects/AIPCC/boards/789')).toBe(789);
+  });
+
+  it('extracts from Jira Server/DC rapidView URL', () => {
+    expect(extractBoardId('https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=42')).toBe(42);
+  });
+
+  it('extracts rapidView with other query params', () => {
+    expect(extractBoardId('https://issues.redhat.com/secure/RapidBoard.jspa?projectKey=FOO&rapidView=99&view=detail')).toBe(99);
+  });
+
+  it('returns null for non-Jira URLs', () => {
+    expect(extractBoardId('https://example.com/some-page')).toBeNull();
+  });
+
+  it('returns null for non-string input', () => {
+    expect(extractBoardId(null)).toBeNull();
+    expect(extractBoardId(undefined)).toBeNull();
+    expect(extractBoardId(123)).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(extractBoardId('')).toBeNull();
+  });
+});
+
+describe('updateTeamBoards', () => {
+  const teamData = {
+    'team-data/teams.json': {
+      teams: { team_abc: { id: 'team_abc', name: 'Platform', orgKey: 'achen', metadata: {}, boards: [] } }
+    }
+  };
+
+  it('auto-extracts boardId from Jira Cloud URL', () => {
+    const storage = createMockStorage(teamData);
+    const result = updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://redhat.atlassian.net/jira/software/projects/RHOAIENG/boards/123', name: 'Platform' }
+    ], 'admin@example.com');
+    expect(result[0].boardId).toBe(123);
+  });
+
+  it('auto-extracts boardId from rapidView URL', () => {
+    const storage = createMockStorage(teamData);
+    const result = updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=42', name: 'Legacy' }
+    ], 'admin@example.com');
+    expect(result[0].boardId).toBe(42);
+  });
+
+  it('uses explicit boardId over auto-extracted', () => {
+    const storage = createMockStorage(teamData);
+    const result = updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://redhat.atlassian.net/jira/software/projects/RHOAIENG/boards/123', name: 'Platform', boardId: 999 }
+    ], 'admin@example.com');
+    expect(result[0].boardId).toBe(999);
+  });
+
+  it('sets boardId to null when URL has no recognizable pattern', () => {
+    const storage = createMockStorage(teamData);
+    const result = updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://example.com/some-page', name: 'Unknown' }
+    ], 'admin@example.com');
+    expect(result[0].boardId).toBeNull();
+  });
+
+  it('preserves sprintFilter when provided', () => {
+    const storage = createMockStorage(teamData);
+    const result = updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://redhat.atlassian.net/jira/software/projects/RHOAIENG/boards/123', name: 'Backend', sprintFilter: 'Backend' }
+    ], 'admin@example.com');
+    expect(result[0].sprintFilter).toBe('Backend');
+  });
+
+  it('omits sprintFilter when empty or whitespace', () => {
+    const storage = createMockStorage(teamData);
+    const result = updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://redhat.atlassian.net/jira/software/projects/RHOAIENG/boards/123', name: 'All', sprintFilter: '  ' }
+    ], 'admin@example.com');
+    expect(result[0].sprintFilter).toBeUndefined();
+  });
+
+  it('trims sprintFilter whitespace', () => {
+    const storage = createMockStorage(teamData);
+    const result = updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://redhat.atlassian.net/jira/software/projects/RHOAIENG/boards/123', name: 'FE', sprintFilter: '  Frontend  ' }
+    ], 'admin@example.com');
+    expect(result[0].sprintFilter).toBe('Frontend');
+  });
+
+  it('writes audit log with board details', () => {
+    const storage = createMockStorage(teamData);
+    updateTeamBoards(storage, 'team_abc', [
+      { url: 'https://redhat.atlassian.net/jira/software/projects/RHOAIENG/boards/123', name: 'Platform', sprintFilter: 'Backend' }
+    ], 'admin@example.com');
+    const log = storage.readFromStorage('audit-log.json');
+    expect(log.entries).toHaveLength(1);
+    expect(log.entries[0].action).toBe('team.boards.update');
+    expect(log.entries[0].newValue[0].boardId).toBe(123);
+    expect(log.entries[0].newValue[0].sprintFilter).toBe('Backend');
   });
 });

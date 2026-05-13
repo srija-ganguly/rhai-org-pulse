@@ -353,9 +353,28 @@ function updateTeamFields(storage, teamId, fields, actorEmail) {
 const MAX_BOARDS = 50;
 const MAX_URL_LENGTH = 2048;
 const MAX_NAME_LENGTH = 200;
+const MAX_SPRINT_FILTER_LENGTH = 200;
 
 function isValidBoardUrl(url) {
   return typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'));
+}
+
+/**
+ * Extract a Jira board ID from a board URL.
+ * Supports:
+ *   - Jira Cloud: .../boards/123, .../board/123
+ *   - Jira Server/DC: ...?rapidView=123
+ * Returns the numeric board ID, or null if extraction fails.
+ */
+function extractBoardId(url) {
+  if (typeof url !== 'string') return null;
+  // Cloud format: /boards/123 or /board/123
+  const cloudMatch = url.match(/\/boards?\/(\d+)/);
+  if (cloudMatch) return Number(cloudMatch[1]);
+  // Server/DC format: rapidView=123
+  const serverMatch = url.match(/[?&]rapidView=(\d+)/);
+  if (serverMatch) return Number(serverMatch[1]);
+  return null;
 }
 
 function updateTeamBoards(storage, teamId, boards, actorEmail) {
@@ -378,10 +397,20 @@ function updateTeamBoards(storage, teamId, boards, actorEmail) {
     }
   }
 
-  const normalized = boards.map(b => ({
-    url: b.url,
-    name: typeof b.name === 'string' ? b.name.slice(0, MAX_NAME_LENGTH) : ''
-  }));
+  const normalized = boards.map(b => {
+    const entry = {
+      url: b.url,
+      name: typeof b.name === 'string' ? b.name.slice(0, MAX_NAME_LENGTH) : ''
+    };
+    // boardId: use explicit value if provided, otherwise auto-extract from URL
+    const explicitId = typeof b.boardId === 'number' ? b.boardId : null;
+    entry.boardId = explicitId ?? extractBoardId(b.url);
+    // sprintFilter: optional string for filtering sprints by name
+    if (typeof b.sprintFilter === 'string' && b.sprintFilter.trim()) {
+      entry.sprintFilter = b.sprintFilter.trim().slice(0, MAX_SPRINT_FILTER_LENGTH);
+    }
+    return entry;
+  });
 
   const oldBoards = team.boards || [];
   team.boards = normalized;
@@ -414,6 +443,7 @@ module.exports = {
   getUnassigned,
   updateTeamFields,
   updateTeamBoards,
+  extractBoardId,
   generateTeamId,
   TEAMS_KEY,
   REGISTRY_KEY

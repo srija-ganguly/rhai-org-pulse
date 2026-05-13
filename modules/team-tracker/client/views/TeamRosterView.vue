@@ -246,6 +246,27 @@
         />
       </div>
 
+      <!-- Allocation Tab -->
+      <div v-if="tabActivated.allocation" v-show="activeTab === 'allocation'">
+        <template v-if="teamHasAllocationBoards">
+          <TeamAllocationTab
+            :team="team"
+            :teamId="team?.teamId"
+            :teamDetail="teamDetail"
+          />
+        </template>
+        <div v-else class="text-center py-16 text-gray-500">
+          <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+          </svg>
+          <h3 class="text-lg font-medium text-gray-700 mb-2">No allocation boards configured</h3>
+          <p class="text-sm max-w-md mx-auto">
+            Add a Jira board URL to this team's board list to enable 40/40/20 allocation tracking.
+            Boards can be configured in the team settings.
+          </p>
+        </div>
+      </div>
 
       <!-- Refresh Modal -->
       <RefreshModal
@@ -263,6 +284,7 @@ import { computed, ref, onMounted, onBeforeUnmount, inject, watch } from 'vue'
 import TeamOverviewTab from '../components/TeamOverviewTab.vue'
 import TeamDeliveryTab from '../components/TeamDeliveryTab.vue'
 import TeamBacklogTab from '../components/TeamBacklogTab.vue'
+import TeamAllocationTab from '../components/TeamAllocationTab.vue'
 import TeamFieldEditor from '../components/TeamFieldEditor.vue'
 import RefreshModal from '@shared/client/components/RefreshModal.vue'
 import { useRoster } from '@shared/client/composables/useRoster'
@@ -526,18 +548,25 @@ async function saveBoards() {
 
 // --- Tabs ---
 const activeTab = ref('overview')
-const tabActivated = ref({ overview: true, delivery: false, backlog: false })
+const tabActivated = ref({ overview: true, delivery: false, backlog: false, allocation: false })
 
 const TAB_ICONS = {
   overview: '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />',
   delivery: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />',
   backlog: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />',
+  allocation: '<path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />',
 }
+
+const teamHasAllocationBoards = computed(() => {
+  const boards = teamDetail.value?.boards || team.value?.metadata?.boards || []
+  return boards.some(b => b.boardId != null)
+})
 
 const visibleTabs = computed(() => [
   { id: 'overview', label: 'Overview', icon: TAB_ICONS.overview },
   { id: 'delivery', label: 'Delivery', icon: TAB_ICONS.delivery },
   { id: 'backlog', label: 'RFE Backlog', icon: TAB_ICONS.backlog },
+  { id: 'allocation', label: '40/40/20 Allocation', icon: TAB_ICONS.allocation },
 ])
 
 watch(activeTab, (tab) => {
@@ -577,6 +606,13 @@ onMounted(() => {
   loadGitlabStats()
   fetchDefinitions()
   resumeTourIfActive('team-detail')
+
+  // Deep-link to a specific tab via URL params (e.g. ?tab=allocation)
+  const tabParam = nav.params.value?.tab
+  if (tabParam && ['overview', 'delivery', 'backlog', 'allocation'].includes(tabParam)) {
+    activeTab.value = tabParam
+    tabActivated.value[tabParam] = true
+  }
 })
 
 onBeforeUnmount(() => {
