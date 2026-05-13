@@ -55,7 +55,33 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Check for claimed label
+        id: check-claimed
+        run: |
+          LABELS=$(gh issue view ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --json labels \
+            --jq '[.labels[].name] | join(",")')
+          if echo "$LABELS" | grep -qi "claimed"; then
+            echo "is_claimed=true" >> "$GITHUB_OUTPUT"
+            echo "Issue has 'claimed' label — standing down"
+          else
+            echo "is_claimed=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Notify if claimed (comment trigger only)
+        if: steps.check-claimed.outputs.is_claimed == 'true' && github.event_name == 'issue_comment'
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --body "This issue is marked as **claimed** — someone is already working on it. I'll step back. Remove the \`claimed\` label if you'd like me to help."
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
       - name: Claude Issue Assistant
+        if: steps.check-claimed.outputs.is_claimed != 'true'
         uses: anthropics/claude-code-action@v1
         continue-on-error: true
         with:
@@ -155,6 +181,12 @@ jobs:
             - `enhancement` (color: a2eeef) — feature requests
             - `question` (color: d876e3) — questions about the codebase
             - `needs-clarification` (color: fbca04) — waiting for more info from author
+            - `claimed` (color: 0075ca) — someone is actively working on this; do NOT implement
+
+            **IMPORTANT: Never apply the `claimed` label yourself.** It is applied
+            externally by contributors to signal they are handling an issue. If you
+            see it, stand down. You will not reach this point if the label is already
+            set (the workflow exits before running you), but be aware of its meaning.
 
             ## Important rules
 
