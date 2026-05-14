@@ -12,11 +12,11 @@ const featureLabelsExpanded = ref(false)
 // Phase metadata for the rich overview cards
 const phaseInfo = {
   'rfe-review': {
-    desc: 'Incoming requirements are ingested from Jira, assessed for quality, and scored against the rubric.',
+    desc: 'Incoming feature requests are ingested from Jira, assessed for quality, and scored against the rubric.',
     color: 'blue',
   },
   'feature-review': {
-    desc: 'Features are auto-generated from approved RFEs, refined by AI, and reviewed by staff engineers.',
+    desc: 'Features are auto-generated from approved RFEs, refined by AI, and reviewed by SMEs.',
     color: 'indigo',
   },
   'implementation': {
@@ -43,13 +43,13 @@ const phaseInfo = {
 
 // Color utility for phase accents
 const phaseColorMap = {
-  blue: { circle: 'bg-blue-500/20 border-blue-500', text: 'text-blue-400', connector: 'from-blue-500 to-indigo-500' },
-  indigo: { circle: 'bg-indigo-500/20 border-indigo-500', text: 'text-indigo-400', connector: 'from-indigo-500 to-purple-500' },
-  purple: { circle: 'bg-purple-500/20 border-purple-500', text: 'text-purple-400', connector: 'from-purple-500 to-cyan-500' },
-  cyan: { circle: 'bg-cyan-500/20 border-cyan-500', text: 'text-cyan-400', connector: 'from-cyan-500 to-amber-500' },
-  amber: { circle: 'bg-amber-500/20 border-amber-500', text: 'text-amber-400', connector: 'from-amber-500 to-teal-500' },
-  teal: { circle: 'bg-teal-500/20 border-teal-500', text: 'text-teal-400', connector: 'from-teal-500 to-rose-500' },
-  rose: { circle: 'bg-rose-500/20 border-rose-500', text: 'text-rose-400', connector: '' },
+  blue: { circle: 'bg-blue-50 dark:bg-blue-950 border-blue-500', text: 'text-blue-400', connector: 'from-blue-500 to-indigo-500' },
+  indigo: { circle: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500', text: 'text-indigo-400', connector: 'from-indigo-500 to-purple-500' },
+  purple: { circle: 'bg-purple-50 dark:bg-purple-950 border-purple-500', text: 'text-purple-400', connector: 'from-purple-500 to-cyan-500' },
+  cyan: { circle: 'bg-cyan-50 dark:bg-cyan-950 border-cyan-500', text: 'text-cyan-400', connector: 'from-cyan-500 to-amber-500' },
+  amber: { circle: 'bg-amber-50 dark:bg-amber-950 border-amber-500', text: 'text-amber-400', connector: 'from-amber-500 to-teal-500' },
+  teal: { circle: 'bg-teal-50 dark:bg-teal-950 border-teal-500', text: 'text-teal-400', connector: 'from-teal-500 to-rose-500' },
+  rose: { circle: 'bg-rose-50 dark:bg-rose-950 border-rose-500', text: 'text-rose-400', connector: '' },
 }
 
 function getPhaseColors(phaseId) {
@@ -79,15 +79,16 @@ const scoringCriteria = [
 ]
 
 const rfeLabels = [
-  { name: 'autofix-rubric-pass', color: 'green', desc: 'RFE passed quality scoring' },
-  { name: 'needs-attention', color: 'amber', desc: 'Automation couldn\'t resolve all issues — you need to act' },
-  { name: 'auto-revised', color: 'blue', desc: 'Content was improved by automation' },
-  { name: 'auto-created', color: 'blue', desc: 'RFE was created by the pipeline' },
-  { name: 'feasibility-pass', color: 'green', desc: 'Technically feasible' },
-  { name: 'feasibility-fail', color: 'red', desc: 'Technically infeasible — review and revise' },
-  { name: 'feasibility-unknown', color: 'gray', desc: 'Feasibility couldn\'t be determined' },
-  { name: 'split-original', color: 'purple', desc: 'This RFE was decomposed into smaller RFEs' },
-  { name: 'split-result', color: 'purple', desc: 'This RFE was produced by splitting another' },
+  { name: 'rfe-creator-autofix-rubric-pass', color: 'green', desc: 'RFE passed quality scoring' },
+  { name: 'rfe-creator-needs-attention', color: 'amber', desc: 'Automation couldn\'t resolve all issues — you need to act' },
+  { name: 'rfe-creator-auto-revised', color: 'blue', desc: 'Content was improved by automation' },
+  { name: 'rfe-creator-auto-created', color: 'blue', desc: 'RFE was created by the pipeline' },
+  { name: 'rfe-creator-feasibility-pass', color: 'green', desc: 'Technically feasible' },
+  { name: 'rfe-creator-feasibility-fail', color: 'red', desc: 'Technically infeasible — review and revise' },
+  { name: 'rfe-creator-feasibility-unknown', color: 'gray', desc: 'Feasibility couldn\'t be determined' },
+  { name: 'rfe-creator-split-original', color: 'purple', desc: 'This RFE was decomposed into smaller RFEs' },
+  { name: 'rfe-creator-split-result', color: 'purple', desc: 'This RFE was produced by splitting another' },
+  { name: 'rfe-creator-ignore', color: 'gray', desc: 'Permanently excludes this RFE from all pipeline processing' },
 ]
 
 const rfeLearnLinks = [
@@ -117,8 +118,8 @@ const rfeSteps = [
 const featureSteps = [
   { name: 'Feature Creation', desc: 'Pipeline clones approved RFEs into RHAISTRAT Jira tickets and captures the business need', ai: true },
   { name: 'Feature Refinement', desc: 'AI adds the "how": technical approach, components, dependencies, acceptance criteria, effort estimates', ai: true, hint: 'opendatahub-io/architecture-context' },
-  { name: 'Feature Scoring', desc: 'AI scores across 4 dimensions using independent reviewer agents (one per dimension). Each dimension scored 0\u20132, total /8', ai: true },
-  { name: 'Human Sign-off', desc: 'Staff engineer or architect for the relevant product space reviews and approves. Required for all features \u2014 AI scoring alone is never sufficient', ai: false },
+  { name: 'Feature Scoring', desc: 'AI scores across 4 dimensions using independent reviewer agents (one per dimension). Each dimension scored 0–2, total /8', ai: true },
+  { name: 'Human Sign-off', desc: 'A staff engineer, architect, or SME for the relevant product space reviews and approves', ai: false },
 ]
 
 // Feature Review scoring dimensions
@@ -177,7 +178,7 @@ function labelColorClasses(color) {
         <!-- Pipeline stages — vertical spine -->
         <div class="relative">
           <!-- Gradient spine -->
-          <div class="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 via-cyan-500 via-amber-500 to-rose-500 opacity-30 dark:opacity-30"></div>
+          <div class="absolute left-[19px] top-0 bottom-14 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 via-cyan-500 via-amber-500 to-rose-500 opacity-30 dark:opacity-30"></div>
 
           <template v-for="(phase, idx) in PHASES" :key="phase.id">
             <!-- Stage card -->
@@ -294,36 +295,13 @@ function labelColorClasses(color) {
           </div>
         </div>
 
-        <!-- What you need to do -->
-        <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-6 mb-6">
-          <h3 class="text-sm font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-3">What you need to do</h3>
-          <ul class="space-y-3">
-            <li class="flex items-start gap-3">
-              <Pencil :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">Write your business justification in the <strong class="text-gray-900 dark:text-white">Description</strong> field — that's what the AI reads</span>
-            </li>
-            <li class="flex items-start gap-3">
-              <Eye :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">Watch for the <code class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 text-xs rounded font-mono">needs-attention</code> label on your Jira tickets</span>
-            </li>
-            <li class="flex items-start gap-3">
-              <RefreshCw :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">If your RFE fails, edit the ticket — it'll be re-assessed on the next daily run</span>
-            </li>
-            <li class="flex items-start gap-3">
-              <AlertTriangle :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">Focus on avoiding <strong class="text-gray-900 dark:text-white">zero scores</strong> — any zero is an automatic fail regardless of total</span>
-            </li>
-          </ul>
-        </div>
-
         <!-- Scoring quick reference -->
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
           <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Scoring quick reference</h3>
           <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">Pass: ≥ 7/10 total AND no zeros on any criterion</p>
           <div class="space-y-3">
             <div v-for="c in scoringCriteria" :key="c.name" class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-              <div class="w-16 text-right">
+              <div class="w-20 text-right whitespace-nowrap flex-shrink-0">
                 <span class="text-sm font-bold text-gray-900 dark:text-white">{{ c.name }}</span>
                 <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ c.range }}</span>
               </div>
@@ -335,6 +313,54 @@ function labelColorClasses(color) {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- How to check your RFE's score -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
+          <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">How to check your RFE's assessment score</h3>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+              <Search :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">Check labels in Jira</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Look for the <code class="px-1.5 py-0.5 bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 text-xs rounded font-mono">rfe-creator-autofix-rubric-pass</code> label (passing) or <code class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 text-xs rounded font-mono">rfe-creator-needs-attention</code> label (failing) on your RHAIRFE ticket</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+              <Eye :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">View details in AI Impact</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Find your RFE on the <button @click="goToPage('rfe-review')" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">RFE Review</button> page to see the full score breakdown and per-criterion results</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- What you need to do -->
+        <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-6 mb-6">
+          <h3 class="text-sm font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-3">What you need to do</h3>
+          <ul class="space-y-3">
+            <li class="flex items-start gap-3">
+              <Sparkles :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">Use the <a href="https://github.com/opendatahub-io/skills-registry" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">rfe-creator</a> skill in Claude Code to draft, review, and improve RFEs before submitting</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <Pencil :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">Write your business justification in the <strong class="text-gray-900 dark:text-white">Description</strong> field — that's what the AI reads</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <Eye :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">Watch for the <code class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 text-xs rounded font-mono">rfe-creator-needs-attention</code> label on your Jira tickets</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <RefreshCw :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">If your RFE fails, edit the ticket — it'll be re-assessed on the next daily run</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <AlertTriangle :size="20" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">Focus on avoiding <strong class="text-gray-900 dark:text-white">zero scores</strong> — any zero is an automatic fail regardless of total</span>
+            </li>
+          </ul>
         </div>
 
         <!-- Jira labels (collapsible) -->
@@ -358,6 +384,21 @@ function labelColorClasses(color) {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- What's Next -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
+          <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">What's next</h3>
+          <button
+            @click="selectPhase(PHASES.find(p => p.id === 'feature-review'))"
+            class="w-full flex items-start gap-3 p-3 bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-lg text-left group hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-colors"
+          >
+            <ChevronsRight :size="20" class="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <div class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Feature Review</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Once an RFE is approved, the pipeline creates a Feature ticket in Jira, refines it with architecture context, and scores it across 4 dimensions.</div>
+            </div>
+          </button>
         </div>
 
         <!-- Links -->
@@ -445,7 +486,7 @@ function labelColorClasses(color) {
               <div>
                 <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ step.name }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {{ step.desc }}<template v-if="step.hint">. Uses architecture context docs from <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded text-xs">{{ step.hint }}</code></template>
+                  {{ step.desc }}<template v-if="step.hint">. Uses architecture context docs from <a :href="'https://github.com/' + step.hint" target="_blank" rel="noopener" class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 hover:underline rounded text-xs font-mono">{{ step.hint }}</a></template>
                 </div>
               </div>
             </div>
@@ -455,10 +496,10 @@ function labelColorClasses(color) {
         <!-- Scoring quick reference -->
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
           <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Scoring quick reference</h3>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">4 dimensions \u00B7 0\u20132 each \u00B7 /8 total</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">4 dimensions · 0–2 each · /8 total</p>
           <div class="space-y-3">
             <div v-for="c in featureScoringCriteria" :key="c.name" class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-              <div class="w-24 text-right">
+              <div class="w-32 text-right whitespace-nowrap flex-shrink-0">
                 <span class="text-sm font-bold text-gray-900 dark:text-white">{{ c.name }}</span>
                 <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ c.range }}</span>
               </div>
@@ -474,28 +515,49 @@ function labelColorClasses(color) {
             <h4 class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Verdicts</h4>
             <div class="space-y-2">
               <div class="flex items-start gap-3 p-3 bg-green-500/5 border border-green-200 dark:border-green-500/20 rounded-lg">
-                <span class="text-base mt-px">\u2705</span>
+                <span class="text-base mt-px">✅</span>
                 <div>
                   <span class="text-sm font-semibold text-green-600 dark:text-green-400">APPROVE</span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500 ml-1.5">\u22656, no zeros</span>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Feature is solid \u2014 proceeds to human sign-off</div>
+                  <span class="text-xs text-gray-400 dark:text-gray-500 ml-1.5">≥6, no zeros</span>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Feature is solid — proceeds to human sign-off</div>
                 </div>
               </div>
               <div class="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-lg">
-                <span class="text-base mt-px">\u26A0\uFE0F</span>
+                <span class="text-base mt-px">⚠️</span>
                 <div>
                   <span class="text-sm font-semibold text-amber-600 dark:text-amber-400">REVISE</span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500 ml-1.5">\u22653, at most 1 zero</span>
+                  <span class="text-xs text-gray-400 dark:text-gray-500 ml-1.5">≥3, at most 1 zero</span>
                   <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Needs targeted improvements before re-review</div>
                 </div>
               </div>
               <div class="flex items-start gap-3 p-3 bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-lg">
-                <span class="text-base mt-px">\u274C</span>
+                <span class="text-base mt-px">❌</span>
                 <div>
                   <span class="text-sm font-semibold text-red-600 dark:text-red-400">REJECT</span>
                   <span class="text-xs text-gray-400 dark:text-gray-500 ml-1.5">&lt;3 or 2+ zeros</span>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Fundamental issues \u2014 likely needs RFE rework AND architecture context improvements</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Fundamental issues — likely needs RFE rework AND architecture context improvements</div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- How to check your verdict -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
+          <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">How to check your feature's AI verdict</h3>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+              <Search :size="20" class="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">Check labels in Jira</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Look for the <code class="px-1.5 py-0.5 bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 text-xs rounded font-mono">strat-creator-rubric-pass</code> label (approve) or <code class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 text-xs rounded font-mono">strat-creator-needs-attention</code> label (revise/reject) on your RHAISTRAT ticket</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+              <Eye :size="20" class="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">View details in AI Impact</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Find your feature on the <button @click="goToPage('feature-review')" class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Feature Review</button> page to see the full AI verdict, per-dimension scores, and reviewer comments</div>
               </div>
             </div>
           </div>
@@ -504,16 +566,12 @@ function labelColorClasses(color) {
         <!-- If APPROVED -->
         <div class="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-xl p-6 mb-6">
           <h3 class="text-sm font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide mb-3">
-            <span class="mr-1.5">\u2705</span> If your feature was approved
+            <span class="mr-1.5">✅</span> If your feature's AI verdict was: APPROVE
           </h3>
           <ul class="space-y-3">
             <li class="flex items-start gap-3">
               <User :size="20" class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">A staff engineer or architect for your component/product space will review and sign off</span>
-            </li>
-            <li class="flex items-start gap-3">
-              <Eye :size="20" class="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">No SLA on sign-off \u2014 it's best-effort, but monitor the <code class="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 text-xs rounded font-mono">strat-creator-human-sign-off</code> label in Jira</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">A staff engineer, architect, or SME for the feature's component/product space should review it in Jira and provide sign-off by adding the <code class="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 text-xs rounded font-mono">strat-creator-human-sign-off</code> label</span>
             </li>
           </ul>
         </div>
@@ -521,16 +579,16 @@ function labelColorClasses(color) {
         <!-- If REVISE -->
         <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-6 mb-6">
           <h3 class="text-sm font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-3">
-            <span class="mr-1.5">\u26A0\uFE0F</span> If your feature got REVISE
+            <span class="mr-1.5">⚠️</span> If your feature's AI verdict was: REVISE
           </h3>
           <ul class="space-y-3">
             <li class="flex items-start gap-3">
               <Search :size="20" class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">Check which dimensions scored low \u2014 the review comments explain what's missing</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">Check which dimensions scored low — the review comments explain what's missing</span>
             </li>
             <li class="flex items-start gap-3">
               <Pencil :size="20" class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">The responsible staff engineer/architect should add guidance via the <strong class="text-gray-900 dark:text-white">"Staff Engineer / SME Input"</strong> field in Jira</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">The responsible staff engineer, architect, or SME should add guidance via the <strong class="text-gray-900 dark:text-white">"Staff Engineer / SME Input"</strong> field in Jira</span>
             </li>
             <li class="flex items-start gap-3">
               <RefreshCw :size="20" class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
@@ -543,7 +601,7 @@ function labelColorClasses(color) {
             <AlertTriangle :size="20" class="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
               <div class="text-sm font-semibold text-amber-700 dark:text-amber-400">Edit inputs, not outputs</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Never edit the AI-generated feature text directly \u2014 the pipeline regenerates it on each run and your edits will be overwritten. Instead, add SME input or improve architecture context.</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Never edit the AI-generated feature text directly — the pipeline regenerates it on each run and your edits will be overwritten. Instead, add SME input or improve architecture context.</div>
             </div>
           </div>
         </div>
@@ -551,7 +609,7 @@ function labelColorClasses(color) {
         <!-- If REJECT -->
         <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-6 mb-6">
           <h3 class="text-sm font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide mb-3">
-            <span class="mr-1.5">\u274C</span> If your feature got REJECT
+            <span class="mr-1.5">❌</span> If your feature's AI verdict was: REJECT
           </h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">This usually signals issues with both the source RFE and the architecture context. Two remediation paths:</p>
           <div class="space-y-3">
@@ -570,11 +628,11 @@ function labelColorClasses(color) {
               </div>
               <div>
                 <div class="text-sm font-semibold text-gray-900 dark:text-white">Improve the architecture context</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Add overlays or update base content in <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded text-xs">opendatahub-io/architecture-context</code> so the AI has better information</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Add overlays or update base content in <a href="https://github.com/opendatahub-io/architecture-context" target="_blank" rel="noopener" class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 hover:underline rounded text-xs font-mono">opendatahub-io/architecture-context</a> so the AI has better information</div>
               </div>
             </div>
           </div>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">After improvements, the feature will be re-processed automatically.</p>
+          <p class="text-xs text-gray-600 dark:text-gray-400 mt-3">After improvements, the feature will be re-processed automatically.</p>
         </div>
 
         <!-- Improving Architecture Context -->
@@ -586,15 +644,15 @@ function labelColorClasses(color) {
           <ul class="space-y-3">
             <li class="flex items-start gap-3">
               <Archive :size="20" class="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">The <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded text-xs">opendatahub-io/architecture-context</code> repo contains AI-generated architecture docs for every RHOAI component</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">The <a href="https://github.com/opendatahub-io/architecture-context" target="_blank" rel="noopener" class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 hover:underline rounded text-xs font-mono">opendatahub-io/architecture-context</a> repo contains AI-generated architecture docs for every RHOAI component</span>
             </li>
             <li class="flex items-start gap-3">
               <FileText :size="20" class="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300"><strong class="text-gray-900 dark:text-white">Overlays</strong> let you add corrections between regeneration cycles \u2014 SDK version bumps, component renames, maturity changes</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300"><strong class="text-gray-900 dark:text-white">Overlays</strong> let you add corrections between regeneration cycles — SDK version bumps, component renames, maturity changes</span>
             </li>
             <li class="flex items-start gap-3">
               <Globe :size="20" class="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">Improving this repo directly improves feature quality across the board \u2014 not just for your feature</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">Improving this repo directly improves feature quality across the board — not just for your feature</span>
             </li>
             <li class="flex items-start gap-3">
               <Lightbulb :size="20" class="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
@@ -633,7 +691,7 @@ function labelColorClasses(color) {
             <ChevronsRight :size="20" class="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
             <div>
               <div class="text-sm font-semibold text-gray-900 dark:text-white">Epic Creation</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">After human sign-off, the next step is Epic Creation \u2014 but this stage of the pipeline hasn't been implemented yet. Coming soon.</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">After human sign-off, the next step is Epic Creation — but this stage of the pipeline hasn't been implemented yet. Coming soon.</div>
             </div>
           </div>
         </div>
