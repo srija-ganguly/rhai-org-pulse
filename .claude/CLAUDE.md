@@ -190,7 +190,7 @@ Integration tests verify:
 Tests run in same Playwright container as smoke tests. Uses tag-based filtering (`@module-name`) for selective execution.
 
 CI workflow (`integration-tests.yml`):
-- Triggers on changes to `modules/**` or `tests/integration/*.spec.js`
+- Triggers on changes to `modules/**` or `tests/integration/**`
 - Uses `dorny/paths-filter` to detect which modules changed
 - Runs tests only for changed modules via generic `test-module` Makefile target
 - Reusable composite action at `.github/actions/test-org-pulse-module/`
