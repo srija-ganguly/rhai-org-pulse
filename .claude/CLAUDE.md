@@ -146,6 +146,34 @@ Overlays: `dev/` (team-tracker ns), `preprod/` (ambient-code--team-tracker ns), 
 
 **Daily CronJob** (`deploy/openshift/overlays/prod/cronjob-sync-refresh.yaml`): Runs at 6:00 AM UTC, triggers roster sync then full metrics refresh via the backend API.
 
+### Testing
+
+**Unit tests** use Vitest with jsdom and @vue/test-utils. Run via `npm test`.
+
+**Smoke tests** use Playwright to verify the production container images. Located in `tests/smoke/app-loads.spec.js`. These run automatically in CI after images are built and can also be run locally:
+
+```bash
+make build-frontend-image  # Build frontend container
+make build-backend-image   # Build backend container
+make smoke-test            # Run Playwright smoke tests (uses demo mode)
+```
+
+Smoke tests verify:
+- Application loads without JavaScript errors (console errors, unhandled exceptions)
+- Core UI structure renders (sidebar, main content, page title)
+- Data/API integration works (no stuck loading spinners, no error states)
+- Client-side routing functions (hash-based navigation)
+- Basic accessibility (semantic landmarks present)
+
+Playwright runs in a container (`mcr.microsoft.com/playwright:v1.60.0`), so no local browser installation needed. Works on any OS (RHEL/Podman, macOS/Docker, Ubuntu). The Makefile auto-detects the container runtime (prefers Podman on RHEL).
+
+**IMPORTANT:** The Playwright version must match between `package.json` (`@playwright/test`) and `Makefile` (`PLAYWRIGHT_IMAGE`). When updating Playwright, change both files to the same version to prevent browser binary mismatches.
+
+CI workflow (`build-images.yml`):
+1. Builds frontend and backend images via `make build-frontend-image` and `make build-backend-image`
+2. Runs `make smoke-test FRONTEND_IMAGE=<image>:<sha> BACKEND_IMAGE=<image>:<sha>` against the built images
+3. Uploads images to Quay if tests pass
+
 ### Building images on ARM Macs
 Standard `--platform linux/amd64` builds fail: npm times out under QEMU, esbuild crashes. Workaround: build/install natively, then copy into amd64 base images. See `deploy/OPENSHIFT.md` step 3 for details. This works because the backend has no native Node addons (all pure JS).
 

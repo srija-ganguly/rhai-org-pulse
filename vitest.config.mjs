@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
@@ -17,6 +17,11 @@ export default defineConfig({
       ['server/**', 'node'],
       ['modules/*/server/**', 'node'],
       ['modules/*/__tests__/server/**', 'node'],
+    ],
+    exclude: [
+      ...configDefaults.exclude,
+      '**/tests/smoke/**',       // Exclude Playwright smoke tests
+      'playwright-report/**',    // Exclude any Playwright output folders
     ],
   },
 })
