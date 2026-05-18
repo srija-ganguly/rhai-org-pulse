@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, watch, nextTick, inject } from 'vue'
 import { PHASES } from '../constants.js'
 import { ArrowLeft, ChevronRight, Sparkles, User, Pencil, Eye, RefreshCw, AlertTriangle, Play, FileText, StickyNote, Code, MessageSquare, HelpCircle, BookOpen, ChevronDown, Search, Zap, ChevronsRight, Archive, Globe, Lightbulb } from 'lucide-vue-next'
 
@@ -9,6 +9,23 @@ const selectedPhase = ref(null)
 const labelsExpanded = ref(false)
 const featureLabelsExpanded = ref(false)
 const testPlanLabelsExpanded = ref(false)
+
+let updatingFromUrl = false
+
+const initialSection = moduleNav.params.value?.section
+if (initialSection) {
+  const match = PHASES.find(p => p.id === initialSection)
+  if (match) selectedPhase.value = match
+}
+
+watch(() => moduleNav.params.value?.section, (section) => {
+  const target = section ? PHASES.find(p => p.id === section) : null
+  if ((target?.id || null) !== (selectedPhase.value?.id || null)) {
+    updatingFromUrl = true
+    selectedPhase.value = target || null
+    nextTick(() => { updatingFromUrl = false })
+  }
+})
 
 // Phase metadata for the rich overview cards
 const phaseInfo = {
@@ -60,10 +77,16 @@ function getPhaseColors(phaseId) {
 
 function selectPhase(phase) {
   selectedPhase.value = phase
+  if (!updatingFromUrl) {
+    moduleNav.updateParams({ section: phase?.id })
+  }
 }
 
 function closeDetail() {
   selectedPhase.value = null
+  if (!updatingFromUrl) {
+    moduleNav.updateParams({ section: undefined })
+  }
 }
 
 function goToPage(phaseId) {
