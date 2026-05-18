@@ -1,19 +1,20 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Line } from 'vue-chartjs'
+import { Line, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Filler,
   Tooltip,
   Legend
 } from 'chart.js'
 import LoadingOverlay from '@shared/client/components/LoadingOverlay.vue'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend)
 
 const isDark = ref(false)
 let darkObserver = null
@@ -51,8 +52,10 @@ const filteredIssues = computed(() => {
 
   if (docFilter.value === 'contributed') {
     issues = issues.filter(i => i.hasDocContributed)
+  } else if (docFilter.value === 'skipped') {
+    issues = issues.filter(i => i.hasDocSkipped)
   } else if (docFilter.value === 'not-contributed') {
-    issues = issues.filter(i => !i.hasDocContributed)
+    issues = issues.filter(i => !i.hasDocContributed && !i.hasDocSkipped)
   }
 
   const q = searchQuery.value.toLowerCase()
@@ -65,10 +68,9 @@ const filteredIssues = computed(() => {
   }
 
   return issues.slice().sort((a, b) => {
-    if (a.hasDocContributed !== b.hasDocContributed) {
-      return a.hasDocContributed ? 1 : -1
-    }
-    return 0
+    const aScore = a.hasDocContributed ? 2 : a.hasDocSkipped ? 1 : 0
+    const bScore = b.hasDocContributed ? 2 : b.hasDocSkipped ? 1 : 0
+    return aScore - bScore
   })
 })
 
@@ -108,39 +110,49 @@ const demandChartOptions = computed(() => ({
   }
 }))
 
-// ─── Graph B: Coverage Rate ───
+// ─── Graph B: Coverage (stacked bar) ───
 
 const coverageChartData = computed(() => ({
   labels: trendData.value.map(p => p.date),
-  datasets: [{
-    label: 'Coverage rate',
-    data: trendData.value.map(p => p.coverageRate),
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    fill: true,
-    tension: 0.3,
-    pointRadius: 2,
-    borderWidth: 2
-  }]
+  datasets: [
+    {
+      label: 'Skipped',
+      data: trendData.value.map(p => p.skippedCount || 0),
+      backgroundColor: 'rgba(107, 114, 128, 0.7)',
+      borderColor: '#6b7280',
+      borderWidth: 1,
+      stack: 'coverage'
+    },
+    {
+      label: 'Contributed',
+      data: trendData.value.map(p => p.contributedCount || 0),
+      backgroundColor: 'rgba(16, 185, 129, 0.7)',
+      borderColor: '#10b981',
+      borderWidth: 1,
+      stack: 'coverage'
+    }
+  ]
 }))
 
 const coverageChartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: { display: false },
+    legend: { display: true, position: 'top', labels: { font: { size: 10 }, color: textColor.value } },
     tooltip: {
       callbacks: {
-        label(ctx) {
-          const point = trendData.value[ctx.dataIndex]
-          return `${ctx.parsed.y}% (${point?.coverageCount || 0} of ${point?.demand || 0})`
+        afterBody(items) {
+          if (!items.length) return ''
+          const point = trendData.value[items[0].dataIndex]
+          if (!point) return ''
+          return `Total coverage: ${point.coverageCount || 0} of ${point.demand || 0}`
         }
       }
     }
   },
   scales: {
-    x: { ticks: { font: { size: 9 }, color: textColor.value, maxRotation: 0, maxTicksLimit: 8 }, grid: { color: gridColor.value } },
-    y: { beginAtZero: true, max: 100, ticks: { font: { size: 10 }, color: textColor.value, callback: (v) => v + '%' }, title: { display: true, text: 'Coverage %', font: { size: 10 }, color: textColor.value }, grid: { color: gridColor.value } }
+    x: { stacked: true, ticks: { font: { size: 9 }, color: textColor.value, maxRotation: 0, maxTicksLimit: 8 }, grid: { color: gridColor.value } },
+    y: { stacked: true, beginAtZero: true, ticks: { font: { size: 10 }, color: textColor.value, precision: 0 }, title: { display: true, text: 'Issues covered', font: { size: 10 }, color: textColor.value }, grid: { color: gridColor.value } }
   }
 }))
 
@@ -322,15 +334,15 @@ function mrLabel(url) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div class="absolute left-0 top-6 z-10 hidden group-hover:block w-64 p-3 text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg dark:shadow-gray-900/50">
-                    Percentage of demand issues that also have the <code class="px-1 py-0.5 rounded-md bg-gray-200/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-200 font-mono text-[10px] border border-gray-300/60 dark:border-gray-600/60">ai1st-doc-contributed</code> label for which the AI-First tool raised a documentation MR already.
+                    Coverage of demand issues: those with <code class="px-1 py-0.5 rounded-md bg-gray-200/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-200 font-mono text-[10px] border border-gray-300/60 dark:border-gray-600/60">ai1st-doc-contributed</code> (AI-First MR raised) or <code class="px-1 py-0.5 rounded-md bg-gray-200/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-200 font-mono text-[10px] border border-gray-300/60 dark:border-gray-600/60">ai1st-doc-skip</code> (already has docs/release notes).
                   </div>
                 </div>
               </div>
               <span class="text-lg font-bold" :class="(metrics?.coverageRate || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-gray-100'">{{ metrics?.coverageRate || 0 }}%</span>
             </div>
-            <div class="text-[10px] text-gray-400 dark:text-gray-500 mb-3">{{ metrics?.coverageCount || 0 }} of {{ metrics?.demandCount || 0 }} features with AI-First doc MR</div>
+            <div class="text-[10px] text-gray-400 dark:text-gray-500 mb-3">{{ metrics?.coverageCount || 0 }} of {{ metrics?.demandCount || 0 }} features covered ({{ metrics?.contributedCount || 0 }} contributed, {{ metrics?.skippedCount || 0 }} skipped)</div>
             <div class="h-[160px]">
-              <Line :data="coverageChartData" :options="coverageChartOptions" />
+              <Bar :data="coverageChartData" :options="coverageChartOptions" />
             </div>
           </div>
 
@@ -375,6 +387,7 @@ function mrLabel(url) {
                 >
                   <option value="all">All</option>
                   <option value="contributed">Contributed</option>
+                  <option value="skipped">Skipped</option>
                   <option value="not-contributed">Not Contributed</option>
                 </select>
               </div>
@@ -416,11 +429,17 @@ function mrLabel(url) {
                     </td>
                     <td class="px-2 py-2 text-center">
                       <span
-                        class="inline-block px-1.5 py-0.5 rounded-full text-xs font-semibold"
-                        :class="issue.hasDocContributed
-                          ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
-                          : 'bg-gray-100 dark:bg-gray-600/20 text-gray-500 dark:text-gray-400'"
-                      >{{ issue.hasDocContributed ? 'Yes' : 'Not yet' }}</span>
+                        v-if="issue.hasDocContributed"
+                        class="inline-block px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400"
+                      >Yes</span>
+                      <span
+                        v-else-if="issue.hasDocSkipped"
+                        class="inline-block px-1.5 py-0.5 rounded-full text-xs font-semibold bg-gray-200 dark:bg-gray-600/40 text-gray-700 dark:text-gray-300"
+                      >Skip</span>
+                      <span
+                        v-else
+                        class="inline-block px-1.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-600/20 text-gray-500 dark:text-gray-400"
+                      >Not yet</span>
                     </td>
                     <td class="px-5 py-2">
                       <a

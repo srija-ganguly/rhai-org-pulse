@@ -2,7 +2,7 @@ const { fetchAllJqlResults } = require('../../../../shared/server/jira');
 const { extractLabelDate } = require('./rfe-fetcher');
 const { validateJqlSafeString } = require('../config');
 
-const DOC_LABELS = ['ai1st-doc-start', 'ai1st-doc-invoked', 'ai1st-doc-contributed'];
+const DOC_LABELS = ['ai1st-doc-start', 'ai1st-doc-invoked', 'ai1st-doc-contributed', 'ai1st-doc-skip'];
 
 function extractLabelAdditionEvents(changelog, targetLabels, issueKey) {
   if (!changelog?.histories) return [];
@@ -51,13 +51,19 @@ function extractMrUrlFromAdf(adfDoc) {
 function processIssue(issue, config) {
   const labels = issue.fields.labels || [];
   const hasDocContributed = labels.includes(config.docContributedLabel);
+  const hasDocSkipped = labels.includes(config.docSkippedLabel || 'ai1st-doc-skip');
   const hasDocInvoked = labels.includes(config.docInvokedLabel);
 
   let docContributedDate = null;
+  let docSkippedDate = null;
   let docInvokedDate = null;
 
   if (hasDocContributed) {
     docContributedDate = extractLabelDate(issue.changelog, config.docContributedLabel)
+      || issue.fields.created;
+  }
+  if (hasDocSkipped) {
+    docSkippedDate = extractLabelDate(issue.changelog, config.docSkippedLabel || 'ai1st-doc-skip')
       || issue.fields.created;
   }
   if (hasDocInvoked) {
@@ -73,8 +79,10 @@ function processIssue(issue, config) {
     created: issue.fields.created,
     updated: issue.fields.updated,
     hasDocContributed,
+    hasDocSkipped,
     hasDocInvoked,
     docContributedDate,
+    docSkippedDate,
     docInvokedDate,
     ccsEpic: null,
     mrLinks: []
@@ -83,7 +91,9 @@ function processIssue(issue, config) {
 
 function computeDocMetrics(issues, labelEvents) {
   const demandCount = issues.length;
-  const coverageCount = issues.filter(i => i.hasDocContributed).length;
+  const contributedCount = issues.filter(i => i.hasDocContributed).length;
+  const skippedCount = issues.filter(i => i.hasDocSkipped).length;
+  const coverageCount = contributedCount + skippedCount;
   const coverageRate = demandCount > 0
     ? Math.round((coverageCount / demandCount) * 100)
     : 0;
@@ -93,7 +103,7 @@ function computeDocMetrics(issues, labelEvents) {
   const recentEvents = labelEvents.filter(e => new Date(e.date) >= thirtyDaysAgo);
   const totalLabelEvents = recentEvents.length;
 
-  return { demandCount, coverageCount, coverageRate, invokedCount, totalLabelEvents };
+  return { demandCount, contributedCount, skippedCount, coverageCount, coverageRate, invokedCount, totalLabelEvents };
 }
 
 function buildDocTrendData(issues, labelEvents) {
@@ -108,10 +118,14 @@ function buildDocTrendData(issues, labelEvents) {
     // Graph A: demand — issues created on or before this date (in the pool by this day)
     const demand = issues.filter(i => i.created <= dateEnd).length;
 
-    // Graph B: coverage — issues with doc-contributed label added on or before this date
-    const coverageCount = issues.filter(i =>
+    // Graph B: coverage — contributed + skipped issues on or before this date
+    const contributedCount = issues.filter(i =>
       i.hasDocContributed && i.docContributedDate && i.docContributedDate <= dateEnd
     ).length;
+    const skippedCount = issues.filter(i =>
+      i.hasDocSkipped && i.docSkippedDate && i.docSkippedDate <= dateEnd
+    ).length;
+    const coverageCount = contributedCount + skippedCount;
     const coverageRate = demand > 0 ? Math.round((coverageCount / demand) * 100) : 0;
 
     // Graph C: daily event counts (used to compute second derivative below)
@@ -122,6 +136,8 @@ function buildDocTrendData(issues, labelEvents) {
     points.push({
       date: dateStr,
       demand,
+      contributedCount,
+      skippedCount,
       coverageCount,
       coverageRate,
       _invokedDaily: invokedDaily,

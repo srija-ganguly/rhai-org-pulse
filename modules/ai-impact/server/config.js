@@ -14,6 +14,7 @@ const DEFAULT_CONFIG = {
   docRequiredStatuses: ['Review', 'Release Pending'],
   docRequiredFieldId: 'customfield_10665',
   docContributedLabel: 'ai1st-doc-contributed',
+  docSkippedLabel: 'ai1st-doc-skip',
   docInvokedLabel: 'ai1st-doc-invoked',
   docMrFieldId: 'customfield_10875'
 };
@@ -54,7 +55,7 @@ function saveConfig(writeToStorage, config) {
   // String fields — validate type and JQL safety
   const stringFields = ['jiraProject', 'linkedProject', 'createdLabel',
     'revisedLabel', 'testExclusionLabel', 'linkTypeName',
-    'docProject', 'docContributedLabel',
+    'docProject', 'docContributedLabel', 'docSkippedLabel',
     'docInvokedLabel', 'docRequiredFieldId', 'docMrFieldId'];
   for (const key of stringFields) {
     if (config[key] !== undefined) {

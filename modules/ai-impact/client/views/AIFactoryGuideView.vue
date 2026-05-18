@@ -775,7 +775,7 @@ function labelColorClasses(color) {
               <div>
                 <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">Trigger</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Add the <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-teal-600 dark:text-teal-400 text-xs rounded font-mono">ai1st-doc-start</code> label to the Jira issue needing documentation (preferably RHAISTRAT)</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">This at the moment for AI-First is the signal that dev work is completed and documentation can begin</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">This <i>at the moment</i> for AI-First is the signal that dev work is completed and documentation can begin</div>
               </div>
             </div>
             <div class="flex items-start gap-4 relative pb-5">
@@ -824,6 +824,10 @@ function labelColorClasses(color) {
               <code class="text-xs px-2 py-0.5 rounded whitespace-nowrap font-mono bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">ai1st-doc-contributed</code>
               <span class="text-xs text-gray-500 dark:text-gray-400">Documentation MR was raised</span>
             </div>
+            <div class="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+              <code class="text-xs px-2 py-0.5 rounded whitespace-nowrap font-mono bg-gray-500/15 text-gray-600 dark:text-gray-400">ai1st-doc-skip</code>
+              <span class="text-xs text-gray-500 dark:text-gray-400">Issue already has documentation or release notes, no need to be actioned by AI-First</span>
+            </div>
           </div>
         </div>
 
@@ -833,7 +837,9 @@ function labelColorClasses(color) {
           <ul class="space-y-3">
             <li class="flex items-start gap-3">
               <Pencil :size="20" class="text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">Add the <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-teal-700 dark:text-teal-400 text-xs rounded font-mono">ai1st-doc-start</code> label to (preferably) RHAISTRAT issues that need documentation</span>
+              <span class="text-sm text-gray-700 dark:text-gray-300">Add the <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-teal-700 dark:text-teal-400 text-xs rounded font-mono">ai1st-doc-start</code> label to (preferably) RHAISTRAT issues that need documentation.
+                <br><span class="text-xs text-gray-500 dark:text-gray-400">This <i>at the moment</i> is the signal for AI-First that dev work is completed and documentation can begin</span>
+              </span>
             </li>
             <li class="flex items-start gap-3">
               <Eye :size="20" class="text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
@@ -842,6 +848,10 @@ function labelColorClasses(color) {
             <li class="flex items-start gap-3">
               <User :size="20" class="text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
               <span class="text-sm text-gray-700 dark:text-gray-300">Review and merge the contributed MRs in the docs repo</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <AlertTriangle :size="20" class="text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">If a feature appears in the demand pool but already has documentation or release notes, add the <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 text-xs rounded font-mono">ai1st-doc-skip</code> label to the Jira issue. Preferably add a comment explaining why (e.g. "Docs already published in 3.x release notes")</span>
             </li>
           </ul>
         </div>

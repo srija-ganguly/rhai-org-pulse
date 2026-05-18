@@ -51,7 +51,7 @@ jobs:
             # Otherwise, use the modules that have direct changes
             MODULES='${{ steps.filter.outputs.changes }}'
             # Remove 'shared-test-files' from the array if it's present
-            MODULES=$(echo "$MODULES" | jq 'map(select(. != "shared-test-files"))')
+            MODULES=$(echo "$MODULES" | jq -c 'map(select(. != "shared-test-files"))')
           fi
 
           echo "modules=$MODULES" >> $GITHUB_OUTPUT
