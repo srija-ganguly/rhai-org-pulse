@@ -10,6 +10,7 @@ const {
 
 const DEFAULT_CONFIG = {
   docContributedLabel: 'ai1st-doc-contributed',
+  docSkippedLabel: 'ai1st-doc-skip',
   docInvokedLabel: 'ai1st-doc-invoked'
 }
 
@@ -51,8 +52,10 @@ describe('processIssue', () => {
     expect(result.summary).toBe('Feature needing docs')
     expect(result.status).toBe('Review')
     expect(result.hasDocContributed).toBe(true)
+    expect(result.hasDocSkipped).toBe(false)
     expect(result.hasDocInvoked).toBe(true)
     expect(result.docContributedDate).toBe('2026-04-25T14:00:00Z')
+    expect(result.docSkippedDate).toBeNull()
     expect(result.docInvokedDate).toBe('2026-04-20T12:00:00Z')
     expect(result.ccsEpic).toBeNull()
     expect(result.mrLinks).toEqual([])
@@ -73,9 +76,39 @@ describe('processIssue', () => {
 
     const result = processIssue(issue, DEFAULT_CONFIG)
     expect(result.hasDocContributed).toBe(false)
+    expect(result.hasDocSkipped).toBe(false)
     expect(result.hasDocInvoked).toBe(false)
     expect(result.docContributedDate).toBeNull()
+    expect(result.docSkippedDate).toBeNull()
     expect(result.docInvokedDate).toBeNull()
+  })
+
+  it('detects skip label', () => {
+    const issue = {
+      key: 'RHAISTRAT-250',
+      fields: {
+        summary: 'Already documented feature',
+        status: { name: 'Review' },
+        labels: ['ai1st-doc-skip'],
+        created: '2026-04-12T10:00:00Z',
+        updated: '2026-05-01T10:00:00Z'
+      },
+      changelog: {
+        histories: [{
+          created: '2026-04-22T10:00:00Z',
+          items: [{
+            field: 'labels',
+            fromString: '',
+            toString: 'ai1st-doc-skip'
+          }]
+        }]
+      }
+    }
+
+    const result = processIssue(issue, DEFAULT_CONFIG)
+    expect(result.hasDocSkipped).toBe(true)
+    expect(result.hasDocContributed).toBe(false)
+    expect(result.docSkippedDate).toBe('2026-04-22T10:00:00Z')
   })
 
   it('handles missing optional fields', () => {
@@ -253,11 +286,11 @@ describe('extractMrUrlFromAdf', () => {
 describe('computeDocMetrics', () => {
   it('computes metrics from issues and label events', () => {
     const issues = [
-      { hasDocContributed: true, hasDocInvoked: true },
-      { hasDocContributed: true, hasDocInvoked: true },
-      { hasDocContributed: false, hasDocInvoked: true },
-      { hasDocContributed: false, hasDocInvoked: false },
-      { hasDocContributed: false, hasDocInvoked: false }
+      { hasDocContributed: true, hasDocSkipped: false, hasDocInvoked: true },
+      { hasDocContributed: true, hasDocSkipped: false, hasDocInvoked: true },
+      { hasDocContributed: false, hasDocSkipped: true, hasDocInvoked: false },
+      { hasDocContributed: false, hasDocSkipped: false, hasDocInvoked: true },
+      { hasDocContributed: false, hasDocSkipped: false, hasDocInvoked: false }
     ]
 
     const now = new Date()
@@ -272,8 +305,10 @@ describe('computeDocMetrics', () => {
 
     const m = computeDocMetrics(issues, labelEvents)
     expect(m.demandCount).toBe(5)
-    expect(m.coverageCount).toBe(2)
-    expect(m.coverageRate).toBe(40)
+    expect(m.contributedCount).toBe(2)
+    expect(m.skippedCount).toBe(1)
+    expect(m.coverageCount).toBe(3)
+    expect(m.coverageRate).toBe(60)
     expect(m.invokedCount).toBe(3)
     expect(m.totalLabelEvents).toBe(2)
   })
@@ -281,6 +316,8 @@ describe('computeDocMetrics', () => {
   it('handles empty issues', () => {
     const m = computeDocMetrics([], [])
     expect(m.demandCount).toBe(0)
+    expect(m.contributedCount).toBe(0)
+    expect(m.skippedCount).toBe(0)
     expect(m.coverageCount).toBe(0)
     expect(m.coverageRate).toBe(0)
     expect(m.invokedCount).toBe(0)
@@ -294,6 +331,8 @@ describe('buildDocTrendData', () => {
     expect(trend).toHaveLength(30)
     expect(trend[0]).toHaveProperty('date')
     expect(trend[0]).toHaveProperty('demand')
+    expect(trend[0]).toHaveProperty('contributedCount')
+    expect(trend[0]).toHaveProperty('skippedCount')
     expect(trend[0]).toHaveProperty('coverageCount')
     expect(trend[0]).toHaveProperty('coverageRate')
     expect(trend[0]).toHaveProperty('invokedRate')
@@ -306,8 +345,8 @@ describe('buildDocTrendData', () => {
     const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
     const issues = [
-      { created: fiveDaysAgo, hasDocContributed: false, docContributedDate: null },
-      { created: twoDaysAgo, hasDocContributed: false, docContributedDate: null }
+      { created: fiveDaysAgo, hasDocContributed: false, hasDocSkipped: false, docContributedDate: null, docSkippedDate: null },
+      { created: twoDaysAgo, hasDocContributed: false, hasDocSkipped: false, docContributedDate: null, docSkippedDate: null }
     ]
 
     const trend = buildDocTrendData(issues, [])
@@ -323,8 +362,8 @@ describe('buildDocTrendData', () => {
     const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
     const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
     const issues = [
-      { created: tenDaysAgo, hasDocContributed: true, docContributedDate: fiveDaysAgo },
-      { created: tenDaysAgo, hasDocContributed: false, docContributedDate: null }
+      { created: tenDaysAgo, hasDocContributed: true, hasDocSkipped: false, docContributedDate: fiveDaysAgo, docSkippedDate: null },
+      { created: tenDaysAgo, hasDocContributed: false, hasDocSkipped: false, docContributedDate: null, docSkippedDate: null }
     ]
 
     const trend = buildDocTrendData(issues, [])
@@ -332,6 +371,24 @@ describe('buildDocTrendData', () => {
     expect(trend[trend.length - 7].coverageRate).toBe(0)
     // today: 2 issues exist, 1 contributed -> 50%
     expect(trend[trend.length - 1].coverageRate).toBe(50)
+  })
+
+  it('includes skipped issues in coverage count', () => {
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+    const issues = [
+      { created: tenDaysAgo, hasDocContributed: true, hasDocSkipped: false, docContributedDate: fiveDaysAgo, docSkippedDate: null },
+      { created: tenDaysAgo, hasDocContributed: false, hasDocSkipped: true, docContributedDate: null, docSkippedDate: threeDaysAgo },
+      { created: tenDaysAgo, hasDocContributed: false, hasDocSkipped: false, docContributedDate: null, docSkippedDate: null }
+    ]
+
+    const trend = buildDocTrendData(issues, [])
+    const today = trend[trend.length - 1]
+    expect(today.contributedCount).toBe(1)
+    expect(today.skippedCount).toBe(1)
+    expect(today.coverageCount).toBe(2)
+    expect(today.coverageRate).toBe(67)
   })
 
   it('computes rolling average rates for tool activity', () => {
