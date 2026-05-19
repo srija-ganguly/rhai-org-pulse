@@ -1,10 +1,5 @@
-const fs = require('fs');
-const path = require('path');
-
 const STORAGE_KEY = 'ai-impact/test-plans.json';
 const MAX_HISTORY = 20;
-
-const DATA_DIR = path.join(__dirname, '..', '..', '..', '..', 'data');
 
 function readTestPlans(readFromStorage) {
   const data = readFromStorage(STORAGE_KEY);
@@ -14,15 +9,8 @@ function readTestPlans(readFromStorage) {
   return data;
 }
 
-function writeTestPlansAtomic(data) {
-  const filePath = path.resolve(DATA_DIR, STORAGE_KEY);
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const tmpPath = filePath + '.tmp.' + process.pid;
-  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tmpPath, filePath);
+function writeTestPlansAtomic(writeToStorageAtomic, data) {
+  writeToStorageAtomic(STORAGE_KEY, data);
 }
 
 function trimForHistory(testPlan) {

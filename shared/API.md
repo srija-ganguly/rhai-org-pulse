@@ -61,8 +61,8 @@ Core team owns `shared/` via CODEOWNERS. Changes require core team review.
 
 | Export | Description |
 |--------|-------------|
-| `storage` | `{ readFromStorage, writeToStorage, listStorageFiles, deleteStorageDirectory }` — filesystem-backed JSON storage |
-| `demoStorage` | `{ readFromStorage, writeToStorage, listStorageFiles, deleteStorageDirectory }` — fixture-backed read-only storage for demo mode |
+| `storage` | `{ readFromStorage, writeToStorage, writeToStorageAtomic, listStorageFiles, deleteStorageDirectory }` — filesystem-backed JSON storage |
+| `demoStorage` | `{ readFromStorage, writeToStorage, writeToStorageAtomic, listStorageFiles, deleteStorageDirectory }` — fixture-backed read-only storage for demo mode |
 | `createAuthMiddleware(readFromStorage, writeToStorage, options)` | Factory returning `{ authMiddleware, requireAdmin, requireTeamAdmin, requireScope, isAdmin, seedRoles }`. `requireScope(scopeName)` returns Express middleware that enforces the given scope for token-authenticated requests (browser/proxy auth is unrestricted). Options: `{ tokenValidator, roleStore }` |
 | `createRoleStore(readFromStorage, writeToStorage, options?)` | Factory returning role CRUD: `{ getRoles, hasRole, assignRole, revokeRole, listAssignments, getAdminEmails, migrateFromAllowlist, migrateEmailDomains, invalidateCache }`. Options: `{ getAuthDomain }` — function returning the auth email domain string (or null). When set, all email arguments are normalized to this domain before storage/lookup. |
 | `normalizeEmail(email, authDomain)` | Normalize an email's domain to the given auth domain. Returns the email with its domain replaced, or the original if no authDomain. Exported for testing. |

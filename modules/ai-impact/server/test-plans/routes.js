@@ -26,7 +26,7 @@ const syncState = {
  * Run the Jira sync in the background. Updates syncState.
  * @param {Function} readFromStorage
  */
-async function runSync(readFromStorage) {
+async function runSync(readFromStorage, writeToStorageAtomic) {
   if (syncState.running) return;
   if (!acquireLock()) {
     console.warn('[ai-impact] Test plan sync skipped: write lock held');
@@ -37,7 +37,7 @@ async function runSync(readFromStorage) {
   syncState.startedAt = new Date().toISOString();
 
   try {
-    const result = await syncTestPlansFromJira(readFromStorage);
+    const result = await syncTestPlansFromJira(readFromStorage, writeToStorageAtomic);
     syncState.lastResult = {
       status: result.errors.length > 0 ? 'partial' : 'success',
       message: `Synced ${result.synced} test plans: ${result.updated} updated (${result.statusChanged} review status changes), ${result.notFound} not found in Jira`,
@@ -59,7 +59,7 @@ async function runSync(readFromStorage) {
 
 module.exports = function registerTestPlanRoutes(router, context) {
   const { storage, requireAdmin, requireScope } = context;
-  const { readFromStorage } = storage;
+  const { readFromStorage, writeToStorageAtomic } = storage;
 
   // ─── 1. Static routes FIRST ───
 
@@ -118,7 +118,7 @@ module.exports = function registerTestPlanRoutes(router, context) {
     }
 
     res.json({ status: 'started' });
-    runSync(readFromStorage);
+    runSync(readFromStorage, writeToStorageAtomic);
   });
 
   /**
@@ -178,7 +178,7 @@ module.exports = function registerTestPlanRoutes(router, context) {
     if (counts.created > 0 || counts.updated > 0) {
       data.lastSyncedAt = new Date().toISOString();
       data.totalTestPlans = Object.keys(data.testPlans).length;
-      writeTestPlansAtomic(data);
+      writeTestPlansAtomic(writeToStorageAtomic, data);
     }
 
     res.json({
@@ -193,7 +193,7 @@ module.exports = function registerTestPlanRoutes(router, context) {
     if (counts.created > 0 || counts.updated > 0) {
       setTimeout(() => {
         console.log('[ai-impact] Triggering post-ingest test plan Jira sync');
-        runSync(readFromStorage);
+        runSync(readFromStorage, writeToStorageAtomic);
       }, 10000);
     }
   });
@@ -214,7 +214,7 @@ module.exports = function registerTestPlanRoutes(router, context) {
       return res.json({ status: 'skipped', message: 'Test plan ingest disabled in demo mode' });
     }
 
-    writeTestPlansAtomic({ lastSyncedAt: null, totalTestPlans: 0, testPlans: {} });
+    writeTestPlansAtomic(writeToStorageAtomic, { lastSyncedAt: null, totalTestPlans: 0, testPlans: {} });
     res.json({ status: 'cleared' });
   });
 
@@ -306,7 +306,7 @@ module.exports = function registerTestPlanRoutes(router, context) {
     data.lastSyncedAt = new Date().toISOString();
     data.totalTestPlans = Object.keys(data.testPlans).length;
 
-    writeTestPlansAtomic(data);
+    writeTestPlansAtomic(writeToStorageAtomic, data);
     res.json({ status });
   });
 };

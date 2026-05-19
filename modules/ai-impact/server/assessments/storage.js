@@ -1,11 +1,5 @@
-const fs = require('fs');
-const path = require('path');
-
 const STORAGE_KEY = 'ai-impact/assessments.json';
 const MAX_HISTORY = 20;
-
-// Resolve DATA_DIR the same way shared/server/storage.js does
-const DATA_DIR = path.join(__dirname, '..', '..', '..', '..', 'data');
 
 /**
  * Read assessments from storage with null/malformed data guard.
@@ -21,19 +15,12 @@ function readAssessments(readFromStorage) {
 }
 
 /**
- * Atomic write: write to temp file then rename.
- * Bypasses writeToStorage to avoid non-atomic writeFileSync.
+ * Atomic write via the shared storage abstraction.
+ * @param {Function} writeToStorageAtomic - The storage atomic write function
  * @param {object} data - The assessments data object to write
  */
-function writeAssessmentsAtomic(data) {
-  const filePath = path.resolve(DATA_DIR, STORAGE_KEY);
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const tmpPath = filePath + '.tmp.' + process.pid;
-  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tmpPath, filePath);
+function writeAssessmentsAtomic(writeToStorageAtomic, data) {
+  writeToStorageAtomic(STORAGE_KEY, data);
 }
 
 /**

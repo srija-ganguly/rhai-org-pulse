@@ -1,11 +1,5 @@
-const fs = require('fs');
-const path = require('path');
-
 const STORAGE_KEY = 'ai-impact/features.json';
 const MAX_HISTORY = 20;
-
-// Resolve DATA_DIR the same way shared/server/storage.js does
-const DATA_DIR = path.join(__dirname, '..', '..', '..', '..', 'data');
 
 /**
  * Read features from storage with null/malformed data guard.
@@ -21,18 +15,12 @@ function readFeatures(readFromStorage) {
 }
 
 /**
- * Atomic write: write to temp file then rename.
+ * Atomic write via the shared storage abstraction.
+ * @param {Function} writeToStorageAtomic - The storage atomic write function
  * @param {object} data - The features data object to write
  */
-function writeFeaturesAtomic(data) {
-  const filePath = path.resolve(DATA_DIR, STORAGE_KEY);
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const tmpPath = filePath + '.tmp.' + process.pid;
-  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tmpPath, filePath);
+function writeFeaturesAtomic(writeToStorageAtomic, data) {
+  writeToStorageAtomic(STORAGE_KEY, data);
 }
 
 /**

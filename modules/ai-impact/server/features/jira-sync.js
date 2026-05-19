@@ -31,11 +31,11 @@ function releaseLock() {
  * @param {Function} readFromStorage
  * @returns {Promise<{synced: number, updated: number, statusChanged: number, notFound: number, errors: string[]}>}
  */
-async function syncFeaturesFromJira(readFromStorage) {
+async function syncFeaturesFromJira(readFromStorage, writeToStorageAtomic) {
   const data = readFeatures(readFromStorage);
   const result = await syncFeatureData(data);
   data.lastJiraSyncAt = new Date().toISOString();
-  writeFeaturesAtomic(data);
+  writeFeaturesAtomic(writeToStorageAtomic, data);
   return result;
 }
 

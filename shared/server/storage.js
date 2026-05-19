@@ -67,6 +67,24 @@ function writeToStorage(key, data) {
 }
 
 /**
+ * Atomic write: write to a temp file then rename.
+ * Prevents partial reads if the process crashes mid-write.
+ * @param {string} key - S3-style key
+ * @param {object} data - Data to write
+ */
+function writeToStorageAtomic(key, data) {
+  const filePath = path.resolve(DATA_DIR, key);
+  if (!isPathSafe(filePath)) {
+    console.error(`[storage] Blocked path traversal attempt: ${key}`);
+    return;
+  }
+  ensureDir(filePath);
+  const tmpPath = filePath + '.tmp.' + process.pid;
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+  fs.renameSync(tmpPath, filePath);
+}
+
+/**
  * List JSON files in a subdirectory of storage
  * @param {string} dir - Subdirectory name (e.g., 'people')
  * @returns {string[]} Array of filenames (without path)
@@ -145,6 +163,7 @@ function deleteFromStorage(key) {
 module.exports = {
   readFromStorage,
   writeToStorage,
+  writeToStorageAtomic,
   listStorageFiles,
   deleteStorageDirectory,
   deleteFromStorage,

@@ -45,6 +45,15 @@ function writeToStorage(key, _data) {
 }
 
 /**
+ * No-op atomic write for demo mode (fixtures are read-only)
+ * @param {string} key - Would-be path
+ * @param {object} _data - Data that would be written
+ */
+function writeToStorageAtomic(key, _data) {
+  console.log(`[Demo Mode] Write ignored: ${key}`);
+}
+
+/**
  * List JSON files in a subdirectory of fixtures
  * @param {string} dir - Subdirectory name (e.g., 'people')
  * @returns {string[]} Array of filenames (without path)
@@ -86,6 +95,7 @@ function deleteFromStorage(key) {
 module.exports = {
   readFromStorage,
   writeToStorage,
+  writeToStorageAtomic,
   listStorageFiles,
   deleteStorageDirectory,
   deleteFromStorage,

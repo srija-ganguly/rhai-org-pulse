@@ -18,7 +18,7 @@ const BULK_CAP = 5000;
  */
 module.exports = function registerComponentOnboardingRoutes(router, context) {
   const { storage, requireAdmin, requireScope } = context;
-  const { readFromStorage } = storage;
+  const { readFromStorage, writeToStorageAtomic } = storage;
 
   // ─── Static routes first ───
 
@@ -89,7 +89,7 @@ module.exports = function registerComponentOnboardingRoutes(router, context) {
     data.fetchedAt = new Date().toISOString();
     data.totalComponents = Object.keys(data.components).length;
 
-    writeComponentOnboardingAtomic(data);
+    writeComponentOnboardingAtomic(writeToStorageAtomic, data);
 
     res.json({
       created: counts.created,
@@ -114,7 +114,7 @@ module.exports = function registerComponentOnboardingRoutes(router, context) {
     if (DEMO_MODE) {
       return res.json({ status: 'skipped', message: 'Component onboarding ingest disabled in demo mode' });
     }
-    writeComponentOnboardingAtomic({ fetchedAt: null, totalComponents: 0, components: {} });
+    writeComponentOnboardingAtomic(writeToStorageAtomic, { fetchedAt: null, totalComponents: 0, components: {} });
     res.json({ status: 'cleared' });
   });
 

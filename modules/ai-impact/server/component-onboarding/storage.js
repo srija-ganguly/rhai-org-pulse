@@ -1,10 +1,5 @@
-const fs = require('fs');
-const path = require('path');
-
 const STORAGE_KEY = 'ai-impact/component-onboarding-data.json';
 const MAX_HISTORY = 20;
-
-const DATA_DIR = path.join(__dirname, '..', '..', '..', '..', 'data');
 
 function readComponentOnboarding(readFromStorage) {
   const data = readFromStorage(STORAGE_KEY);
@@ -14,15 +9,8 @@ function readComponentOnboarding(readFromStorage) {
   return data;
 }
 
-function writeComponentOnboardingAtomic(data) {
-  const filePath = path.resolve(DATA_DIR, STORAGE_KEY);
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const tmpPath = filePath + '.tmp.' + process.pid;
-  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tmpPath, filePath);
+function writeComponentOnboardingAtomic(writeToStorageAtomic, data) {
+  writeToStorageAtomic(STORAGE_KEY, data);
 }
 
 function trimForHistory(component) {

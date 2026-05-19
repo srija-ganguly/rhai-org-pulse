@@ -26,7 +26,8 @@ function makeValidBody() {
 function makeContext(storageData = null) {
   return {
     storage: {
-      readFromStorage: vi.fn().mockReturnValue(storageData)
+      readFromStorage: vi.fn().mockReturnValue(storageData),
+      writeToStorageAtomic: vi.fn()
     },
     requireAdmin: (req, res, next) => next(),
     requireScope: () => (req, res, next) => next()

@@ -27,7 +27,7 @@ const syncState = {
  * Run the Jira sync in the background. Updates syncState.
  * @param {Function} readFromStorage
  */
-async function runSync(readFromStorage) {
+async function runSync(readFromStorage, writeToStorageAtomic) {
   if (syncState.running) return;
   if (!acquireLock()) {
     console.warn('[ai-impact] Feature sync skipped: write lock held');
@@ -38,7 +38,7 @@ async function runSync(readFromStorage) {
   syncState.startedAt = new Date().toISOString();
 
   try {
-    const result = await syncFeaturesFromJira(readFromStorage);
+    const result = await syncFeaturesFromJira(readFromStorage, writeToStorageAtomic);
     syncState.lastResult = {
       status: result.errors.length > 0 ? 'partial' : 'success',
       message: `Synced ${result.synced} features: ${result.updated} updated (${result.statusChanged} review status changes), ${result.notFound} not found in Jira`,
@@ -67,7 +67,7 @@ async function runSync(readFromStorage) {
  */
 module.exports = function registerFeatureRoutes(router, context) {
   const { storage, requireAdmin, requireScope } = context;
-  const { readFromStorage } = storage;
+  const { readFromStorage, writeToStorageAtomic } = storage;
 
   // ─── 1. Static routes FIRST ───
 
@@ -97,7 +97,7 @@ module.exports = function registerFeatureRoutes(router, context) {
     }
 
     res.json({ status: 'started' });
-    runSync(readFromStorage);
+    runSync(readFromStorage, writeToStorageAtomic);
   });
 
   // POST /features/bulk (Admin) — bulk upsert features
@@ -137,7 +137,7 @@ module.exports = function registerFeatureRoutes(router, context) {
     data.lastSyncedAt = new Date().toISOString();
     data.totalFeatures = Object.keys(data.features).length;
 
-    writeFeaturesAtomic(data);
+    writeFeaturesAtomic(writeToStorageAtomic, data);
 
     res.json({
       created: counts.created,
@@ -151,7 +151,7 @@ module.exports = function registerFeatureRoutes(router, context) {
     if (counts.created > 0 || counts.updated > 0) {
       setTimeout(() => {
         console.log('[ai-impact] Triggering post-ingest Jira sync');
-        runSync(readFromStorage);
+        runSync(readFromStorage, writeToStorageAtomic);
       }, 10000);
     }
   });
@@ -162,7 +162,7 @@ module.exports = function registerFeatureRoutes(router, context) {
       return res.json({ status: 'skipped', message: 'Feature ingest disabled in demo mode' });
     }
 
-    writeFeaturesAtomic({ lastSyncedAt: null, totalFeatures: 0, features: {} });
+    writeFeaturesAtomic(writeToStorageAtomic, { lastSyncedAt: null, totalFeatures: 0, features: {} });
     res.json({ status: 'cleared' });
   });
 
@@ -204,7 +204,7 @@ module.exports = function registerFeatureRoutes(router, context) {
     data.lastSyncedAt = new Date().toISOString();
     data.totalFeatures = Object.keys(data.features).length;
 
-    writeFeaturesAtomic(data);
+    writeFeaturesAtomic(writeToStorageAtomic, data);
     res.json({ status });
   });
 };

@@ -28,7 +28,7 @@ const BULK_CAP = 5000;
  */
 module.exports = function registerAssessmentRoutes(router, context) {
   const { storage, requireAdmin, requireScope } = context;
-  const { readFromStorage } = storage;
+  const { readFromStorage, writeToStorageAtomic } = storage;
 
   // ─── 1. Static routes FIRST ───
 
@@ -79,7 +79,7 @@ module.exports = function registerAssessmentRoutes(router, context) {
     data.lastSyncedAt = new Date().toISOString();
     data.totalAssessed = Object.keys(data.assessments).length;
 
-    writeAssessmentsAtomic(data);
+    writeAssessmentsAtomic(writeToStorageAtomic, data);
 
     res.json({
       created: counts.created,
@@ -95,7 +95,7 @@ module.exports = function registerAssessmentRoutes(router, context) {
       return res.json({ status: 'skipped', message: 'Assessment ingest disabled in demo mode' });
     }
 
-    writeAssessmentsAtomic({ lastSyncedAt: null, totalAssessed: 0, assessments: {} });
+    writeAssessmentsAtomic(writeToStorageAtomic, { lastSyncedAt: null, totalAssessed: 0, assessments: {} });
     res.json({ status: 'cleared' });
   });
 
@@ -137,7 +137,7 @@ module.exports = function registerAssessmentRoutes(router, context) {
     data.lastSyncedAt = new Date().toISOString();
     data.totalAssessed = Object.keys(data.assessments).length;
 
-    writeAssessmentsAtomic(data);
+    writeAssessmentsAtomic(writeToStorageAtomic, data);
     res.json({ status });
   });
 };
