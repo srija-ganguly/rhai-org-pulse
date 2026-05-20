@@ -1062,7 +1062,7 @@ function labelColorClasses(color) {
                 <Sparkles :size="16" class="text-teal-600 dark:text-teal-400" />
               </div>
               <div>
-                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Documentation Generation</div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Generation of Documentation</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Pipeline generates documentation and raises an MR against the docs repo. Issue is labeled <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-teal-600 dark:text-teal-400 text-xs rounded font-mono">ai1st-doc-invoked</code></div>
               </div>
             </div>

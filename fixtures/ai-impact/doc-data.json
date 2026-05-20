@@ -1,5 +1,12 @@
 {
   "fetchedAt": "2026-05-13T10:00:00Z",
+  "cumulativeStats": {
+    "stratsContributed": 3,
+    "allContributed": 3,
+    "allInvoked": 4,
+    "allResolvedContributed": 0,
+    "stratsResolvedContributed": 0
+  },
   "issues": [
     {
       "key": "RHAISTRAT-2001",

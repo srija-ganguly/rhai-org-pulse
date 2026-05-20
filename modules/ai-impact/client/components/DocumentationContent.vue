@@ -124,7 +124,7 @@ const coverageChartData = computed(() => ({
       stack: 'coverage'
     },
     {
-      label: 'Contributed',
+      label: 'AI Generated',
       data: trendData.value.map(p => p.contributedCount || 0),
       backgroundColor: 'rgba(16, 185, 129, 0.7)',
       borderColor: '#10b981',
@@ -297,11 +297,11 @@ function mrLabel(url) {
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
               <a :href="jiraJqlUrl(cumulativeJqls.stratsContributed)" target="_blank" rel="noopener" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 hover:underline">{{ cumulativeStats.stratsContributed }}</a>
-              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">RHAISTRATs with AI-First doc contributed</div>
+              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">RHAISTRATs with AI Generated docs</div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
               <a :href="jiraJqlUrl(cumulativeJqls.allContributed)" target="_blank" rel="noopener" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 hover:underline">{{ cumulativeStats.allContributed }}</a>
-              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Total Jiras with AI-First doc contributed</div>
+              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Total Jiras with AI Generated docs</div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
               <a :href="jiraJqlUrl(cumulativeJqls.allInvoked)" target="_blank" rel="noopener" class="text-2xl font-bold text-blue-600 dark:text-blue-400 hover:underline">{{ cumulativeStats.allInvoked }}</a>
@@ -309,11 +309,11 @@ function mrLabel(url) {
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
               <a :href="jiraJqlUrl(cumulativeJqls.allResolvedContributed)" target="_blank" rel="noopener" class="text-2xl font-bold text-green-600 dark:text-green-400 hover:underline">{{ cumulativeStats.allResolvedContributed }}</a>
-              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Resolved/Closed with AI-First doc contributed</div>
+              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Resolved/Closed with AI Generated docs</div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
               <a :href="jiraJqlUrl(cumulativeJqls.stratsResolvedContributed)" target="_blank" rel="noopener" class="text-2xl font-bold text-green-600 dark:text-green-400 hover:underline">{{ cumulativeStats.stratsResolvedContributed }}</a>
-              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">RHAISTRATs Resolved/Closed with AI-First doc contributed</div>
+              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">RHAISTRATs Resolved/Closed with AI Generated docs</div>
             </div>
           </div>
         </div>
@@ -411,7 +411,7 @@ function mrLabel(url) {
               </div>
             </div>
             <div class="px-5 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-indigo-50 dark:bg-indigo-500/10 text-xs text-gray-600 dark:text-gray-400">
-              To trigger AI-First documentation, add the label <code class="px-1.5 py-0.5 rounded-md bg-gray-200/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-200 font-mono text-[11px] border border-gray-300/60 dark:border-gray-600/60">ai1st-doc-start</code> to the Jira issue (preferably RHAISTRAT, but not required).
+              To trigger AI-First documentation, add the label <code class="px-1.5 py-0.5 rounded-md bg-gray-200/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-200 font-mono text-[11px] border border-gray-300/60 dark:border-gray-600/60">ai1st-doc-start</code> to the Jira issue (preferably RHAISTRAT, but not required). <a href="#/ai-impact/ai-factory-guide?section=documentation" class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">See AI Factory Guide for more info</a>.
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
@@ -420,7 +420,7 @@ function mrLabel(url) {
                     <th class="px-5 py-2 text-left text-gray-500 dark:text-gray-400 font-medium">Key</th>
                     <th class="px-5 py-2 text-left text-gray-500 dark:text-gray-400 font-medium">Summary</th>
                     <th class="px-3 py-2 text-center text-gray-500 dark:text-gray-400 font-medium w-20">Status</th>
-                    <th class="px-2 py-2 text-center text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">AI-First Doc Contributed</th>
+                    <th class="px-2 py-2 text-center text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">AI Generated</th>
                     <th class="px-5 py-2 text-left text-gray-500 dark:text-gray-400 font-medium">CCS Epic</th>
                     <th class="px-5 py-2 text-left text-gray-500 dark:text-gray-400 font-medium">MR Link(s)</th>
                   </tr>
