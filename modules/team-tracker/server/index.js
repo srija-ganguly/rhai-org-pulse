@@ -3791,6 +3791,14 @@ module.exports = function registerRoutes(router, context) {
    *   post:
    *     tags: ['TT: Snapshots']
    *     summary: Generate snapshots for all teams
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               refreshCurrent:
+   *                 type: boolean
    *     responses:
    *       200:
    *         description: Snapshot generation result
