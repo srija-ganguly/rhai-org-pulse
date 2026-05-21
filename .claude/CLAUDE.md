@@ -39,6 +39,7 @@ npm run dev:full       # Starts Vite (5173) + Express (3001)
 | `PRODUCT_PAGES_TOKEN` | Personal bearer token for Product Pages (local dev fallback). Used when OAuth env vars are not set. |
 | `FEATURE_TRAFFIC_GITLAB_TOKEN` | GitLab PAT with `read_api` scope for releases execution pipeline. Overrides `GITLAB_TOKEN` for CI artifact fetching. |
 | `AUTH_EMAIL_DOMAIN` | Override email domain for role matching (e.g. `cluster.local`). When set, role assignments normalize emails to this domain. Env var takes precedence over `authEmailDomain` in site-config.json. |
+| `PRODUCT_BUILDS_API_URL` | Base URL of the AIPCC Dashboard API server. Can also be configured via Settings UI. |
 | `DEMO_MODE` / `VITE_DEMO_MODE` | Set both to `true` for fixture data (no credentials needed). |
 
 ## Key Concepts
@@ -303,6 +304,17 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/ai-impact/component-onboarding` — all component onboarding entries (latest projection)
 - `/api/modules/ai-impact/component-onboarding/:key` — single component onboarding entry + history
 - `/api/modules/ai-impact/component-onboarding/status` — component onboarding data status (admin)
+- `/api/modules/product-builds/config` — AIPCC Dashboard API configuration (admin)
+- `/api/modules/product-builds/products/:key` — product details (proxied)
+- `/api/modules/product-builds/drops` — list drops with filtering/pagination (proxied)
+- `/api/modules/product-builds/drops/:key` — drop details (proxied)
+- `/api/modules/product-builds/drops/:key/changelog` — drop changelog (proxied)
+- `/api/modules/product-builds/drops/:key/metrics` — drop Konflux release metrics (proxied)
+- `/api/modules/product-builds/series` — list product series/versions (proxied)
+- `/api/modules/product-builds/artifacts` — list artifacts with filtering/pagination (proxied)
+- `/api/modules/product-builds/artifacts/:key` — artifact details (proxied)
+- `/api/modules/product-builds/artifacts/:key/wheels` — wheel collections for a container artifact (proxied)
+- `/api/modules/product-builds/artifacts/:key/containers` — containers using a wheels-collection or base-image (proxied)
 - `/api/health-metrics/tracking/status` — opt-out status
 - `/api/health-metrics/dashboard` — aggregated dashboard (admin/viewer)
 - `/api/health-metrics/pages` — per-page stats (admin/viewer)
@@ -381,6 +393,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/ai-impact/test-plans/bulk` — bulk upsert test plans (admin)
 - `/api/modules/ai-impact/test-plans/sync` — trigger test plan Jira sync (admin)
 - `/api/modules/ai-impact/component-onboarding/bulk` — bulk upsert component onboarding data (admin)
+- `/api/modules/product-builds/config` — save AIPCC Dashboard API configuration (admin)
 - `/api/health-metrics/track` — record page view (rate-limited)
 - `/api/health-metrics/tracking/opt-out` — opt out (authenticated)
 - `/api/health-metrics/config` — update config (admin)

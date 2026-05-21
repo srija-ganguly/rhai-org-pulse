@@ -24,10 +24,42 @@ module.exports = function registerRoutes(router, context) {
 
   // --- Config routes (admin) ---
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/config:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get product builds configuration (admin)
+   *     responses:
+   *       200:
+   *         description: Current configuration including AIPCC Dashboard API base URL
+   */
   router.get('/config', requireAdmin, function(req, res) {
     res.json(getConfig(readFromStorage));
   });
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/config:
+   *   post:
+   *     tags: [Product Builds]
+   *     summary: Save product builds configuration (admin)
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               baseUrl:
+   *                 type: string
+   *                 description: Base URL of the AIPCC Dashboard API server
+   *     responses:
+   *       200:
+   *         description: Configuration saved
+   *       400:
+   *         description: Invalid baseUrl (must be HTTP/HTTPS or empty string)
+   */
   router.post('/config', requireAdmin, function(req, res) {
     const { baseUrl } = req.body;
     if (typeof baseUrl !== 'string') {
@@ -48,48 +80,294 @@ module.exports = function registerRoutes(router, context) {
     return proxyGet(baseUrl, upstreamPath, req.query, res);
   }
 
-  // --- Proxy routes ---
+  // --- Proxy routes (AIPCC Dashboard API) ---
 
-  // Products
+  /**
+   * @openapi
+   * /api/modules/product-builds/products/{key}:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get product details
+   *     description: Retrieves a single product by its key, including supported versions, Konflux namespace, and sync status.
+   *     parameters:
+   *       - name: key
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Product key (e.g. rhaiis, rhel-ai)
+   *     responses:
+   *       200:
+   *         description: Product object with key, product_name, short_name, supported_versions, drop_strategy, sync status
+   *       404:
+   *         description: Product not found
+   *       503:
+   *         description: AIPCC Dashboard API not configured
+   */
   router.get('/products/:key', function(req, res) {
     upstream(`/products/${encodeURIComponent(req.params.key)}`, req, res);
   });
 
-  // Drops
+  /**
+   * @openapi
+   * /api/modules/product-builds/drops:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: List drops with filtering and pagination
+   *     description: Retrieves drops with filtering by series, version pattern, artifact type, publication status, and date range. Pagination via X-Total-Count and X-Total-Pages response headers.
+   *     parameters:
+   *       - name: product_key
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Product key to filter drops
+   *       - name: series
+   *         in: query
+   *         schema:
+   *           type: string
+   *         description: Filter by product version series
+   *       - name: artifact_type
+   *         in: query
+   *         schema:
+   *           type: string
+   *           enum: [base-images, containers, disk-images, wheels-collections]
+   *         description: Filter to drops containing this artifact type
+   *       - name: supported_only
+   *         in: query
+   *         schema:
+   *           type: boolean
+   *         description: Only return drops for supported product versions
+   *       - name: limit
+   *         in: query
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 1000
+   *           default: 50
+   *       - name: offset
+   *         in: query
+   *         schema:
+   *           type: integer
+   *           minimum: 0
+   *           default: 0
+   *     responses:
+   *       200:
+   *         description: Array of Drop objects (key, name, product_key, product_version, git_branch, environments, release_timings, created_at)
+   */
   router.get('/drops', function(req, res) {
     upstream('/drops', req, res);
   });
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/drops/{key}:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get drop details
+   *     description: Retrieves a single drop by its key, including release timings, environments, and git branch.
+   *     parameters:
+   *       - name: key
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Unique drop key
+   *     responses:
+   *       200:
+   *         description: Drop object
+   *       404:
+   *         description: Drop not found
+   */
   router.get('/drops/:key', function(req, res) {
     upstream(`/drops/${encodeURIComponent(req.params.key)}`, req, res);
   });
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/drops/{key}/changelog:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get drop changelog
+   *     description: Returns commits between this drop and the previous drop, aggregated across all repositories.
+   *     parameters:
+   *       - name: key
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Unique drop key
+   *     responses:
+   *       200:
+   *         description: Object with drop_key and changelogs (commits grouped by repository)
+   *       404:
+   *         description: Drop not found
+   */
   router.get('/drops/:key/changelog', function(req, res) {
     upstream(`/drops/${encodeURIComponent(req.params.key)}/changelog`, req, res);
   });
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/drops/{key}/metrics:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get drop metrics
+   *     description: Computes Konflux release statistics for a drop, aggregating build and release metrics including timeline, counts, and per-component release status.
+   *     parameters:
+   *       - name: key
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Unique drop key
+   *     responses:
+   *       200:
+   *         description: Aggregated build and release metrics for the drop
+   *       404:
+   *         description: Drop not found
+   */
   router.get('/drops/:key/metrics', function(req, res) {
     upstream(`/drops/${encodeURIComponent(req.params.key)}/metrics`, req, res);
   });
 
-  // Series
+  /**
+   * @openapi
+   * /api/modules/product-builds/series:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: List product series (versions)
+   *     description: Returns unique series (product_versions) for a product, sorted by semantic version.
+   *     parameters:
+   *       - name: product_key
+   *         in: query
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Product key to get series for
+   *     responses:
+   *       200:
+   *         description: Array of series name strings
+   */
   router.get('/series', function(req, res) {
     upstream('/series', req, res);
   });
 
-  // Artifacts
+  /**
+   * @openapi
+   * /api/modules/product-builds/artifacts:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: List artifacts with filtering and pagination
+   *     description: Retrieves artifacts with optional filtering by product, drop, series, type, accelerator, environment, and architecture. Pagination headers X-Total-Count and X-Total-Pages are forwarded from the AIPCC Dashboard API.
+   *     parameters:
+   *       - name: product_key
+   *         in: query
+   *         schema:
+   *           type: string
+   *         description: Return artifacts for drops of this product
+   *       - name: drop_key
+   *         in: query
+   *         schema:
+   *           type: string
+   *         description: Return artifacts for this specific drop
+   *       - name: type
+   *         in: query
+   *         schema:
+   *           type: string
+   *           enum: [base-images, containers, disk-images, wheels-collections]
+   *         description: Filter by artifact type
+   *       - name: limit
+   *         in: query
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 1000
+   *           default: 50
+   *       - name: offset
+   *         in: query
+   *         schema:
+   *           type: integer
+   *           minimum: 0
+   *           default: 0
+   *     responses:
+   *       200:
+   *         description: Array of Artifact objects (key, type, variant, archs, environments, commit, created_at, sha_digest, labels, konflux_data, constraints_file, build_sequence_summary)
+   */
   router.get('/artifacts', function(req, res) {
     upstream('/artifacts', req, res);
   });
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/artifacts/{key}:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get artifact details
+   *     description: Retrieves a single artifact by its unique key, including labels, Konflux build data, SBOM links, constraints file, and build sequence summary.
+   *     parameters:
+   *       - name: key
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Unique artifact key (e.g. quay.io/org/image:tag)
+   *     responses:
+   *       200:
+   *         description: Full Artifact object
+   *       404:
+   *         description: Artifact not found
+   */
   router.get('/artifacts/:key', function(req, res) {
     upstream(`/artifacts/${encodeURIComponent(req.params.key)}`, req, res);
   });
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/artifacts/{key}/wheels:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get wheel collections for an artifact
+   *     description: Returns wheels-collections artifacts that are dependencies of the specified container artifact.
+   *     parameters:
+   *       - name: key
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Artifact key of the container
+   *     responses:
+   *       200:
+   *         description: Array of wheel-collection Artifact objects
+   *       404:
+   *         description: Artifact not found
+   */
   router.get('/artifacts/:key/wheels', function(req, res) {
     upstream(`/artifacts/${encodeURIComponent(req.params.key)}/wheels`, req, res);
   });
 
+  /**
+   * @openapi
+   * /api/modules/product-builds/artifacts/{key}/containers:
+   *   get:
+   *     tags: [Product Builds]
+   *     summary: Get containers using an artifact
+   *     description: Returns container artifacts that depend on the specified wheels-collection or base-image artifact.
+   *     parameters:
+   *       - name: key
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Artifact key of the wheels-collection or base-image
+   *     responses:
+   *       200:
+   *         description: Array of container Artifact objects
+   *       400:
+   *         description: Artifact is not a wheels-collection or base-image
+   *       404:
+   *         description: Artifact not found
+   */
   router.get('/artifacts/:key/containers', function(req, res) {
     upstream(`/artifacts/${encodeURIComponent(req.params.key)}/containers`, req, res);
   });

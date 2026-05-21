@@ -2,6 +2,7 @@
 import { ref, onMounted, inject, computed, watch } from 'vue'
 import { useProduct, useDrops, useSeries } from '../composables/useDrops'
 import { useArtifacts } from '../composables/useArtifacts'
+import { formatDate, envBadgeClass } from '../utils/formatting'
 
 const nav = inject('moduleNav')
 const { product, loading: productLoading, error: productError, loadProduct } = useProduct()
@@ -12,52 +13,27 @@ const { artifacts, loading: artifactsLoading, error: artifactsError, loadArtifac
 const activeTab = ref('series')
 const selectedSeries = ref('')
 
-const PRODUCT_CONFIG = {
-  rhaiis: { artifactTypeFilter: 'containers' }
-}
-
-const IMPLEMENTED_PRODUCTS = new Set(['rhaiis'])
-
-const productKey = computed(() => {
-  const hash = window.location.hash || ''
-  const parts = hash.replace('#/', '').split('?')[0].split('/')
-  return parts[1] || ''
-})
-
-const artifactTypeFilter = computed(() => {
-  return PRODUCT_CONFIG[productKey.value]?.artifactTypeFilter || ''
-})
-
-const isImplemented = computed(() => IMPLEMENTED_PRODUCTS.has(productKey.value))
+const productKey = 'rhaiis'
+const artifactTypeFilter = 'containers'
 
 async function load() {
-  const key = productKey.value
-  if (!key || !isImplemented.value) return
-  const filters = { limit: 1000 }
-  if (artifactTypeFilter.value) filters.artifact_type = artifactTypeFilter.value
+  const filters = { limit: 1000, artifact_type: artifactTypeFilter }
   await Promise.all([
-    loadProduct(key),
-    loadDrops(key, filters),
-    loadSeries(key)
+    loadProduct(productKey),
+    loadDrops(productKey, filters),
+    loadSeries(productKey)
   ])
 }
 
 watch(selectedSeries, (val) => {
-  const key = productKey.value
-  if (!key) return
-  const filters = { series: val || undefined, limit: 1000 }
-  if (artifactTypeFilter.value) filters.artifact_type = artifactTypeFilter.value
-  loadDrops(key, filters)
+  const filters = { series: val || undefined, limit: 1000, artifact_type: artifactTypeFilter }
+  loadDrops(productKey, filters)
 })
 
 onMounted(load)
 
 function loadArtifactsTab() {
-  const key = productKey.value
-  if (!key) return
-  const filters = { product_key: key }
-  if (artifactTypeFilter.value) filters.type = artifactTypeFilter.value
-  loadArtifacts(filters)
+  loadArtifacts({ product_key: productKey, type: artifactTypeFilter })
 }
 
 watch(activeTab, (tab) => {
@@ -67,25 +43,11 @@ watch(activeTab, (tab) => {
 })
 
 function navigateToDrop(dropKey) {
-  nav.navigateTo('drop-detail', { key: dropKey })
+  nav.navigateTo('drop-detail', { key: dropKey, product: productKey })
 }
 
 function navigateToArtifact(artifactKey) {
-  nav.navigateTo('artifact-detail', { key: artifactKey })
-}
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  })
-}
-
-function envBadgeClass(env) {
-  if (env === 'production') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-  if (env === 'stage') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-  return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+  nav.navigateTo('artifact-detail', { key: artifactKey, product: productKey })
 }
 
 const groupedDrops = computed(() => {

@@ -3,6 +3,7 @@ import { onMounted, inject, ref, computed, reactive, watch } from 'vue'
 import { useDropDetail } from '../composables/useDrops'
 import { useArtifacts } from '../composables/useArtifacts'
 import { apiRequest } from '@shared/client/services/api'
+import { formatDate, envBadgeClass, archBadgeClass, konfluxStateBadgeClass, testStatusBadgeClass, testStatusLabel, formatDuration } from '../utils/formatting'
 
 const BASE = '/modules/product-builds'
 const nav = inject('moduleNav')
@@ -12,15 +13,11 @@ const { artifacts, loading: artifactsLoading, error: artifactsError, loadArtifac
 const activeTab = ref('artifacts')
 const currentDropKey = computed(() => nav.params.value.key)
 const wheelsData = reactive(new Map())
-const wheelsRaw = new Map()
+const wheelsRaw = reactive(new Map())
 const packagesPopup = ref(null)
 const packagesShowAll = reactive(new Set())
 
-const productKey = computed(() => {
-  const hash = window.location.hash || ''
-  const parts = hash.replace('#/', '').split('?')[0].split('/')
-  return parts[1] || ''
-})
+const productKey = computed(() => nav.params.value.product || '')
 
 function extractAccelerator(variant) {
   if (!variant) return null
@@ -102,35 +99,11 @@ watch(currentDropKey, (key) => loadAll(key))
 onMounted(() => loadAll(currentDropKey.value))
 
 function navigateToArtifact(artifactKey) {
-  nav.navigateTo('artifact-detail', { key: artifactKey })
+  nav.navigateTo('artifact-detail', { key: artifactKey, product: productKey.value })
 }
 
 function navigateToDrop(key) {
-  nav.navigateTo('drop-detail', { key })
-}
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  })
-}
-
-function envBadgeClass(env) {
-  if (env === 'production') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-  if (env === 'stage') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-  return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-const ARCH_COLORS = {
-  x86_64: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  aarch64: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  ppc64le: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  s390x: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-}
-
-function archBadgeClass(arch) {
-  return ARCH_COLORS[arch?.toLowerCase()] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+  nav.navigateTo('drop-detail', { key, product: productKey.value })
 }
 
 function getQuayDirectTagUrl(key) {
@@ -257,42 +230,6 @@ function getDigestUrl(artifact) {
   if (!artifact.key.startsWith('quay.io/')) return null
   const path = artifact.key.replace('quay.io/', '').split(':')[0]
   return `https://quay.io/repository/${path}/manifest/${artifact.sha_digest}`
-}
-
-function konfluxStateBadgeClass(state) {
-  const s = (state || '').toLowerCase()
-  if (s === 'succeeded') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-  if (s === 'failed') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-  if (s === 'running') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-  if (s === 'pending') return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-  return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-const TEST_STATUS_MAP = {
-  testpassed: { label: 'Passed', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  testfail: { label: 'Failed', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  inprogress: { label: 'Running', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  pending: { label: 'Pending', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-}
-
-function testStatusLabel(status) {
-  return TEST_STATUS_MAP[status?.toLowerCase()]?.label || status
-}
-
-function testStatusBadgeClass(status) {
-  return TEST_STATUS_MAP[status?.toLowerCase()]?.cls || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-function formatDuration(start, end) {
-  const diffMs = new Date(end) - new Date(start)
-  if (diffMs < 0) return null
-  const totalSeconds = Math.floor(diffMs / 1000)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`
-  if (minutes > 0) return `${minutes}m ${seconds}s`
-  return `${seconds}s`
 }
 
 const totalColumns = 7

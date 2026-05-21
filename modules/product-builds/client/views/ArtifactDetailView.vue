@@ -1,11 +1,13 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, inject } from 'vue'
 import { useArtifactDetail } from '../composables/useArtifacts'
+import { formatDate, envBadgeClass, archBadgeClass, konfluxStateBadgeClass, testStatusBadgeClass, testStatusLabel, formatDuration, getAcceleratorInfo } from '../utils/formatting'
 
 const nav = inject('moduleNav')
 const { artifact, wheels, containers, loading, error, loadArtifact, loadWheels, loadContainers } = useArtifactDetail()
 
 const currentArtifactKey = computed(() => nav.params.value.key)
+const productKey = computed(() => nav.params.value.product || '')
 const copiedValue = ref(null)
 const otherLabelsExpanded = ref(false)
 const wheelsWithPackages = ref([])
@@ -139,46 +141,7 @@ function downloadDependencyGraphAsJson() {
 }
 
 function navigateToArtifact(key) {
-  nav.navigateTo('artifact-detail', { key })
-}
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  })
-}
-
-function envBadgeClass(env) {
-  if (env === 'production') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-  if (env === 'stage') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-  return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-const ARCH_COLORS = {
-  x86_64: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  aarch64: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  ppc64le: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  s390x: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-}
-
-function archBadgeClass(arch) {
-  return ARCH_COLORS[arch?.toLowerCase()] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-function getAcceleratorInfo(art) {
-  const labels = art?.labels || {}
-  let accel = art?.variant ? art.variant.split('-')[0] : null
-  let runtime = null
-  if (accel) {
-    runtime = labels[`com.redhat.aiplatform.${accel}_version`] || null
-  }
-  return {
-    accel,
-    runtime,
-    python: labels['com.redhat.aiplatform.python'] || null,
-    baseImage: labels['com.redhat.aiplatform.image'] || null
-  }
+  nav.navigateTo('artifact-detail', { key, product: productKey.value })
 }
 
 function getReleaseNotesUrl(art) {
@@ -242,42 +205,6 @@ function sbomState(art) {
 
 function isContainerType(art) {
   return art?.type === 'containers' || art?.type === 'base-images'
-}
-
-function konfluxStateBadgeClass(state) {
-  const s = state?.toLowerCase()
-  if (s === 'succeeded') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-  if (s === 'failed') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-  if (s === 'running') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-  if (s === 'pending') return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-  return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-const TEST_STATUS_MAP = {
-  testpassed: { label: 'Passed', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  testfail: { label: 'Failed', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  inprogress: { label: 'Running', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  pending: { label: 'Pending', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-}
-
-function testStatusBadgeClass(status) {
-  return TEST_STATUS_MAP[status?.toLowerCase()]?.cls || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-}
-
-function testStatusLabel(status) {
-  return TEST_STATUS_MAP[status?.toLowerCase()]?.label || status
-}
-
-function formatDuration(start, end) {
-  const ms = new Date(end) - new Date(start)
-  if (ms < 0) return '—'
-  const totalSec = Math.floor(ms / 1000)
-  const h = Math.floor(totalSec / 3600)
-  const m = Math.floor((totalSec % 3600) / 60)
-  const s = totalSec % 60
-  if (h > 0) return `${h}h ${m}m ${s}s`
-  if (m > 0) return `${m}m ${s}s`
-  return `${s}s`
 }
 
 function formatDateTime(iso) {
@@ -424,7 +351,7 @@ const otherLabels = computed(() => {
             <dt class="text-gray-500 dark:text-gray-400">Drop</dt>
             <dd class="mt-0.5 space-y-1">
               <div v-for="dk in artifact.drop_keys" :key="dk" class="flex items-center gap-1">
-                <button @click="nav.navigateTo('drop-detail', { key: dk })" class="text-primary-600 dark:text-blue-400 hover:underline text-left break-all">{{ dk }}</button>
+                <button @click="nav.navigateTo('drop-detail', { key: dk, product: productKey.value })" class="text-primary-600 dark:text-blue-400 hover:underline text-left break-all">{{ dk }}</button>
                 <button @click="copyToClipboard(dk)" class="shrink-0 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                   <svg v-if="copiedValue === dk" class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                   <svg v-else class="w-3 h-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
