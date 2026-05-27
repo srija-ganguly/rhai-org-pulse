@@ -260,6 +260,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/team-tracker/structure/migrate/preview` — migration preview (admin)
 - `/api/modules/team-tracker/structure/migrate/field-to-options/preview` — field-to-options migration preview (team-admin)
 - `/api/modules/releases/registry` — list releases
+- `/api/modules/releases/registry/config` — registry config (Jira projects for version resolution) (release-manager)
 - `/api/modules/releases/registry/:id` — single release
 - `/api/modules/releases/audit-log` — unified audit log across all release domains
 - `/api/modules/releases/planning/releases` — planning releases
@@ -378,7 +379,10 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/team-tracker/field-exceptions` — create field exception (team-admin/admin)
 - `/api/modules/team-tracker/registry/people/ldap-import` — LDAP import (team-admin/admin)
 - `/api/modules/releases/registry` — create release (release-manager)
+- `/api/modules/releases/registry/config` — save registry config (release-manager)
 - `/api/modules/releases/registry/discover` — auto-discover from Product Pages (release-manager)
+- `/api/modules/releases/registry/resolve-jira-versions` — preview Jira version resolution (release-manager)
+- `/api/modules/releases/registry/resolve-jira-versions/apply` — apply resolved Jira versions to registry (release-manager)
 - `/api/modules/releases/admin/migrate-storage` — clean up old storage paths after migration (admin)
 - `/api/modules/releases/planning/releases` — create planning release (release-manager)
 - `/api/modules/releases/planning/releases/:version/big-rocks` — create big rock (release-manager)
