@@ -242,14 +242,27 @@ module.exports = function registerHygieneRoutes(router, context) {
       var jiraRequest = jira.jiraRequest;
       var fetchAllJqlResults = jira.fetchAllJqlResults;
 
+      // Look up fixVersions from registry for JQL queries
+      var registry = readRegistry(storage.readFromStorage);
+      var registryReleases = registry.releases || [];
+      var jqlVersions = null;
+      for (var rli = 0; rli < registryReleases.length; rli++) {
+        var rl = registryReleases[rli];
+        if (rl.displayName === version || rl.id === version) {
+          if (rl.fixVersions && rl.fixVersions.length > 0) {
+            jqlVersions = rl.fixVersions;
+          }
+          break;
+        }
+      }
+
       function onProgress(stage, detail) {
         refreshState.progress = { stage: stage, message: detail.message || stage };
       }
 
-      fetchHygieneFeatures(jiraRequest, fetchAllJqlResults, version, config, onProgress)
+      fetchHygieneFeatures(jiraRequest, fetchAllJqlResults, version, config, onProgress, { jqlVersions: jqlVersions })
         .then(function(result) {
           // Enrich with version-released status from registry
-          var registry = readRegistry(storage.readFromStorage);
           var registryReleases = registry.releases || [];
           var versionReleased = false;
           var versionGaDate = null;
@@ -397,6 +410,19 @@ module.exports = function registerHygieneRoutes(router, context) {
           message: 'Refreshing ' + version + ' (' + (versionIndex + 1) + '/' + activeVersions.length + ')'
         };
 
+        // Look up registry release for fixVersions and version-released enrichment
+        var rel = null;
+        for (var rri = 0; rri < registryReleases.length; rri++) {
+          var rr = registryReleases[rri];
+          if (rr.id === version || rr.displayName === version) {
+            rel = rr;
+            break;
+          }
+        }
+        var jqlVersions = (rel && rel.fixVersions && rel.fixVersions.length > 0)
+          ? rel.fixVersions
+          : null;
+
         function onProgress(stage, detail) {
           refreshState.progress = {
             stage: stage,
@@ -404,17 +430,8 @@ module.exports = function registerHygieneRoutes(router, context) {
           };
         }
 
-        fetchHygieneFeatures(jiraRequest, fetchAllJqlResults, version, config, onProgress)
+        fetchHygieneFeatures(jiraRequest, fetchAllJqlResults, version, config, onProgress, { jqlVersions: jqlVersions })
           .then(function(result) {
-            // Look up registry release for version-released enrichment
-            var rel = null;
-            for (var rri = 0; rri < registryReleases.length; rri++) {
-              var rr = registryReleases[rri];
-              if (rr.id === version || rr.displayName === version) {
-                rel = rr;
-                break;
-              }
-            }
             var gaDate = rel && rel.milestones && (rel.milestones.gaDate || rel.milestones.ga);
             var versionReleased = false;
             var versionGaDate = null;

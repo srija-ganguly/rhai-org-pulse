@@ -406,3 +406,99 @@ describe('transformIssue', function () {
     expect(result.violations).toEqual([])
   })
 })
+
+// ─── fetchHygieneFeatures — jqlVersions parameter ──────────────────
+
+const { fetchHygieneFeatures } = require('../../../server/hygiene/jira-fetch')
+
+describe('fetchHygieneFeatures jqlVersions option', function () {
+  // Capture JQL queries without hitting Jira
+  function createMockJira() {
+    var capturedJqls = []
+    function mockJiraRequest() { return Promise.resolve({}) }
+    function mockFetchAll(_jiraReq, jql) {
+      capturedJqls.push(jql)
+      return Promise.resolve([])
+    }
+    return { mockJiraRequest, mockFetchAll, capturedJqls }
+  }
+
+  it('uses version string in JQL when jqlVersions not provided', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'rhoai-3.5.z', {})
+    expect(mock.capturedJqls[0]).toContain('"Target Version" = "rhoai-3.5.z"')
+  })
+
+  it('uses single jqlVersion with = syntax', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'rhoai-3.5.z', {}, null, {
+      jqlVersions: ['rhoai-3.5']
+    })
+    expect(mock.capturedJqls[0]).toContain('"Target Version" = "rhoai-3.5"')
+    expect(mock.capturedJqls[0]).not.toContain('rhoai-3.5.z')
+  })
+
+  it('uses multiple jqlVersions with IN syntax', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'rhoai-3.5.z', {}, null, {
+      jqlVersions: ['rhoai-3.5', 'RHOAI-3.5']
+    })
+    expect(mock.capturedJqls[0]).toContain('"Target Version" IN ("rhoai-3.5", "RHOAI-3.5")')
+  })
+
+  it('uses jqlVersions for fixVersion filter too', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'rhoai-3.5.z', {}, null, {
+      jqlVersions: ['rhoai-3.5']
+    })
+    // The supplementary queries (pass 1 missing TV and bugs) also use the version
+    var fixVersionJqls = mock.capturedJqls.filter(function (q) { return q.includes('fixVersion') })
+    for (var i = 0; i < fixVersionJqls.length; i++) {
+      expect(fixVersionJqls[i]).toContain('fixVersion = "rhoai-3.5"')
+      expect(fixVersionJqls[i]).not.toContain('rhoai-3.5.z')
+    }
+  })
+
+  it('sanitizes double quotes in version strings', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'test', {}, null, {
+      jqlVersions: ['ver"sion']
+    })
+    expect(mock.capturedJqls[0]).toContain('ver\\"sion')
+    expect(mock.capturedJqls[0]).not.toContain('ver"sion')
+  })
+
+  it('sanitizes backslashes before quotes to prevent escape bypass', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'test', {}, null, {
+      jqlVersions: ['ver\\"sion']
+    })
+    // Input: ver\"sion → after backslash escape: ver\\"sion → after quote escape: ver\\\\"sion
+    // The backslash must be escaped first so \" doesn't become \\" (breaking out of the string)
+    expect(mock.capturedJqls[0]).not.toContain('ver\\"sion')
+  })
+
+  it('falls back to version when jqlVersions is empty array', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'rhoai-3.5.z', {}, null, {
+      jqlVersions: []
+    })
+    expect(mock.capturedJqls[0]).toContain('"Target Version" = "rhoai-3.5.z"')
+  })
+
+  it('falls back to version when jqlVersions is null', async function () {
+    var mock = createMockJira()
+    await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'rhoai-3.5.z', {}, null, {
+      jqlVersions: null
+    })
+    expect(mock.capturedJqls[0]).toContain('"Target Version" = "rhoai-3.5.z"')
+  })
+
+  it('preserves version in result for storage key', async function () {
+    var mock = createMockJira()
+    var result = await fetchHygieneFeatures(mock.mockJiraRequest, mock.mockFetchAll, 'rhoai-3.5.z', {}, null, {
+      jqlVersions: ['rhoai-3.5']
+    })
+    expect(result.version).toBe('rhoai-3.5.z')
+  })
+})

@@ -322,22 +322,39 @@ async function fetchRfeMap(jiraRequestFn, fetchAllJqlResultsFn, rfeKeys) {
  *
  * @param {Function} jiraRequestFn - The shared jiraRequest function
  * @param {Function} fetchAllJqlResultsFn - The shared fetchAllJqlResults function
- * @param {string} version - Target version string (e.g., "RHOAI 2.18")
+ * @param {string} version - Display version string used for storage key and result metadata
  * @param {object} config - { projects: string[], issueTypes: string[] }
  * @param {Function} [onProgress] - Optional callback: (stage, detail) => void
+ * @param {object} [options] - Optional settings
+ * @param {string[]} [options.jqlVersions] - Jira version strings to use in JQL queries.
+ *   When provided, uses these instead of `version` for Target Version and fixVersion filters.
+ *   Supports multiple values via IN (...) syntax.
  * @returns {Promise<{ features: object, fetchedAt: string, version: string }>}
  */
-async function fetchHygieneFeatures(jiraRequestFn, fetchAllJqlResultsFn, version, config, onProgress) {
+async function fetchHygieneFeatures(jiraRequestFn, fetchAllJqlResultsFn, version, config, onProgress, options) {
   const projects = config.projects || ['RHAISTRAT', 'RHOAIENG']
   const issueTypes = config.issueTypes || ['Feature', 'Initiative']
   const notify = typeof onProgress === 'function' ? onProgress : function () {}
+
+  // Determine JQL version strings — use options.jqlVersions if provided, else fall back to version
+  const jqlVersions = (options && Array.isArray(options.jqlVersions) && options.jqlVersions.length > 0)
+    ? options.jqlVersions
+    : [version]
+
+  // Sanitize: escape backslashes then double quotes to prevent JQL injection
+  const sanitized = []
+  for (var si = 0; si < jqlVersions.length; si++) {
+    sanitized.push(jqlVersions[si].replace(/\\/g, '\\\\').replace(/"/g, '\\"'))
+  }
 
   // ── Pass 1: Fetch all features (lightweight) ──
   notify('pass1', { message: 'Fetching features for ' + version })
 
   const projectFilter = 'project IN (' + projects.join(', ') + ')'
   const issueTypeFilter = 'issuetype IN (' + issueTypes.join(', ') + ')'
-  const versionFilter = '"Target Version" = "' + version + '"'
+  const versionFilter = sanitized.length === 1
+    ? '"Target Version" = "' + sanitized[0] + '"'
+    : '"Target Version" IN (' + sanitized.map(function (v) { return '"' + v + '"' }).join(', ') + ')'
 
   const jql = projectFilter + ' AND ' + issueTypeFilter + ' AND ' + versionFilter
 
@@ -350,8 +367,12 @@ async function fetchHygieneFeatures(jiraRequestFn, fetchAllJqlResultsFn, version
   // ── Supplementary: Issues with fixVersion but no Target Version ──
   notify('supplementary', { message: 'Checking for issues with fixVersion but no Target Version' })
 
+  const fixVersionFilter = sanitized.length === 1
+    ? 'fixVersion = "' + sanitized[0] + '"'
+    : 'fixVersion IN (' + sanitized.map(function (v) { return '"' + v + '"' }).join(', ') + ')'
+
   const missingTvJql = projectFilter + ' AND ' + issueTypeFilter +
-    ' AND fixVersion = "' + version + '" AND "Target Version" IS EMPTY'
+    ' AND ' + fixVersionFilter + ' AND "Target Version" IS EMPTY'
 
   try {
     const missingTvIssues = await fetchAllJqlResultsFn(jiraRequestFn, missingTvJql, PASS1_FIELDS, {
@@ -373,7 +394,7 @@ async function fetchHygieneFeatures(jiraRequestFn, fetchAllJqlResultsFn, version
   // ── Supplementary: Post-release bugs missing Affected Version ──
   notify('supplementary', { message: 'Checking for post-release bugs' })
 
-  const bugJql = projectFilter + ' AND issuetype = Bug AND fixVersion = "' + version + '"'
+  const bugJql = projectFilter + ' AND issuetype = Bug AND ' + fixVersionFilter
 
   try {
     const bugIssues = await fetchAllJqlResultsFn(jiraRequestFn, bugJql, PASS1_FIELDS, {
