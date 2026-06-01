@@ -40,7 +40,8 @@ function setupRoutes(storageData) {
     requireAdmin: (req, res, next) => next(),
     requireTeamAdmin: (req, res, next) => next(),
     requireScope: () => (req, res, next) => next(),
-    roleStore: mockRoleStore
+    roleStore: mockRoleStore,
+    registerScopes: vi.fn()
   }
 
   const registerRoutes = require('../../server/index.js')
@@ -106,7 +107,7 @@ describe('field-exceptions routes', () => {
   describe('GET /field-exceptions', () => {
     it('returns all exceptions for admin', () => {
       const { handlers } = setupRoutes(baseStorageData())
-      const req = { query: {}, isAdmin: true, isTeamAdmin: false, permissionTier: 'admin' }
+      const req = { query: {}, isAdmin: true, isTeamAdmin: false, isManager: false }
       const res = mockRes()
       handlers['GET /field-exceptions'](req, res)
       expect(res._body.exceptions).toHaveLength(1)
@@ -119,7 +120,7 @@ describe('field-exceptions routes', () => {
         { id: 'fex_team1', entityType: 'team', entityId: 'team_b', fieldId: '__boards__', reason: 'no boards', createdAt: '2026-01-01', createdBy: 'admin@test.com' }
       )
       const { handlers } = setupRoutes(data)
-      const req = { query: { entityType: 'team' }, isAdmin: true, isTeamAdmin: false, permissionTier: 'admin' }
+      const req = { query: { entityType: 'team' }, isAdmin: true, isTeamAdmin: false, isManager: false }
       const res = mockRes()
       handlers['GET /field-exceptions'](req, res)
       expect(res._body.exceptions).toHaveLength(1)
@@ -128,7 +129,7 @@ describe('field-exceptions routes', () => {
 
     it('returns empty list for user tier', () => {
       const { handlers } = setupRoutes(baseStorageData())
-      const req = { query: {}, isAdmin: false, isTeamAdmin: false, permissionTier: 'user' }
+      const req = { query: {}, isAdmin: false, isTeamAdmin: false, isManager: false }
       const res = mockRes()
       handlers['GET /field-exceptions'](req, res)
       expect(res._body.exceptions).toHaveLength(0)

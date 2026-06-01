@@ -279,14 +279,13 @@ function createHealthMetricsRouter(context) {
     }
 
     const userType = (req.userUid && userTypeCache.get(req.userUid)) || 'unknown';
-    const permissionTier = req.permissionTier || 'user';
 
     eventStore.append({
       ts: new Date().toISOString(),
       page,
       email,
       userType,
-      permissionTier,
+      roles: req.userRoles || [],
     });
 
     invalidateCurrentMonthCache();

@@ -1023,7 +1023,7 @@ Metadata from the most recent fetch attempt.
 JSON Lines format (one JSON object per line). Partitioned by month for efficient retention pruning.
 
 ```
-{"ts":"2026-05-11T15:30:00.000Z","page":"team-tracker::org-dashboard","email":"user@redhat.com","userType":"Backend","permissionTier":"manager"}
+{"ts":"2026-05-11T15:30:00.000Z","page":"team-tracker::org-dashboard","email":"user@redhat.com","userType":"Backend","roles":["admin"]}
 ```
 
 | Field | Type | Description |
@@ -1032,7 +1032,7 @@ JSON Lines format (one JSON object per line). Partitioned by month for efficient
 | `page` | string | `moduleSlug::viewId` composite key |
 | `email` | string | User email (for unique-user counting) |
 | `userType` | string | Value from configured person field at event time, or `"unknown"` |
-| `permissionTier` | string | `admin`, `team-admin`, `manager`, or `user` |
+| `roles` | string[] | User's roles at event time (e.g., `["admin"]`, `["team-admin"]`, `[]`). Legacy events may have `permissionTier` string instead; the aggregator handles both formats. |
 
 ### Monthly Aggregates — `data/health-metrics/aggregates/YYYY-MM.json`
 
@@ -1045,6 +1045,7 @@ JSON Lines format (one JSON object per line). Partitioned by month for efficient
       "views": 342,
       "uniqueUsers": 28,
       "byUserType": { "Backend": 12, "Frontend": 8, "unknown": 3 },
+      "byRole": { "admin": 3, "team-admin": 2, "release-manager": 5 },
       "byPermissionTier": { "admin": 3, "manager": 10, "user": 15 }
     }
   }

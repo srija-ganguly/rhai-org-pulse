@@ -6,7 +6,6 @@ const {
   getManagedUids,
   getDirectReports,
   isManager,
-  getPermissionTier,
   canEditPerson
 } = require('../permissions');
 
@@ -126,36 +125,6 @@ describe('isManager', () => {
 
   it('returns false for null registry', () => {
     expect(isManager('achen', null)).toBe(false);
-  });
-});
-
-describe('getPermissionTier', () => {
-  it('returns admin when isAdmin flag is true', () => {
-    expect(getPermissionTier('achen', registry, true)).toBe('admin');
-  });
-
-  it('returns admin even with null uid when isAdmin', () => {
-    expect(getPermissionTier(null, registry, true)).toBe('admin');
-  });
-
-  it('returns manager for managers', () => {
-    expect(getPermissionTier('achen', registry, false)).toBe('manager');
-  });
-
-  it('returns user for non-managers', () => {
-    expect(getPermissionTier('bsmith', registry, false)).toBe('user');
-  });
-
-  it('returns user for null uid when not admin', () => {
-    expect(getPermissionTier(null, registry, false)).toBe('user');
-  });
-
-  it('returns team-admin when isTeamAdminFlag is true', () => {
-    expect(getPermissionTier('bsmith', registry, false, true)).toBe('team-admin');
-  });
-
-  it('admin takes precedence over team-admin', () => {
-    expect(getPermissionTier('bsmith', registry, true, true)).toBe('admin');
   });
 });
 

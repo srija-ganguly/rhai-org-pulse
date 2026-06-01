@@ -10,7 +10,7 @@ function makeCoreServices(overrides = {}) {
     requireAuth: noopMw,
     requireAdmin: noopMw,
     requireTeamAdmin: noopMw,
-    requireReleaseManager: noopMw,
+    requireRole: function () { return noopMw },
     requireScope: function () { return noopMw },
     roleStore: { getRole: noop },
     ...overrides
@@ -29,13 +29,15 @@ describe('buildModuleContext', () => {
     expect(ctx).toHaveProperty('requireAuth')
     expect(ctx).toHaveProperty('requireAdmin')
     expect(ctx).toHaveProperty('requireTeamAdmin')
-    expect(ctx).toHaveProperty('requireReleaseManager')
+    expect(ctx).toHaveProperty('requireRole')
     expect(ctx).toHaveProperty('requireScope')
     expect(ctx).toHaveProperty('roleStore')
     expect(ctx).toHaveProperty('registerDiagnostics')
     expect(ctx).toHaveProperty('registerMessageProvider')
     expect(ctx).toHaveProperty('registerRefresh')
     expect(ctx).toHaveProperty('registerExport')
+    expect(ctx).toHaveProperty('registerRole')
+    expect(ctx).toHaveProperty('registerScopes')
   })
 
   it('noop registries do not throw when called', () => {
@@ -44,6 +46,8 @@ describe('buildModuleContext', () => {
     expect(() => ctx.registerMessageProvider('x', function () {})).not.toThrow()
     expect(() => ctx.registerRefresh('x', { handler: function () {} })).not.toThrow()
     expect(() => ctx.registerExport(function () {})).not.toThrow()
+    expect(() => ctx.registerRole('test-role', { label: 'Test', description: 'Test' })).not.toThrow()
+    expect(() => ctx.registerScopes([{ key: 'test:read', label: 'T', description: 'T', category: 'T' }])).not.toThrow()
   })
 
   it('diagnostics accumulates into array per slug', () => {
@@ -89,6 +93,32 @@ describe('buildModuleContext', () => {
     ctx.registerExport(fn)
     expect(exports.register).toHaveBeenCalledWith('my-mod', fn)
   })
+
+  it('delegates registerRole to role registry with module slug', () => {
+    const roleRegistry = { register: vi.fn() }
+    const ctx = buildModuleContext(makeCoreServices({ roleRegistry }), 'releases')
+    ctx.registerRole('release-manager', { label: 'Release Manager', description: 'Manages releases' })
+    expect(roleRegistry.register).toHaveBeenCalledWith('release-manager', {
+      label: 'Release Manager',
+      description: 'Manages releases',
+      module: 'releases'
+    })
+  })
+
+  it('delegates registerScopes to scope registry with module slug', () => {
+    const scopeRegistry = { register: vi.fn() }
+    const ctx = buildModuleContext(makeCoreServices({ scopeRegistry }), 'releases')
+    ctx.registerScopes([
+      { key: 'releases:read', label: 'R', description: 'D', category: 'C' }
+    ])
+    expect(scopeRegistry.register).toHaveBeenCalledWith('releases:read', {
+      key: 'releases:read',
+      label: 'R',
+      description: 'D',
+      category: 'C',
+      module: 'releases'
+    })
+  })
 })
 
 describe('createTestContext', () => {
@@ -98,13 +128,15 @@ describe('createTestContext', () => {
     expect(ctx).toHaveProperty('requireAuth')
     expect(ctx).toHaveProperty('requireAdmin')
     expect(ctx).toHaveProperty('requireTeamAdmin')
-    expect(ctx).toHaveProperty('requireReleaseManager')
+    expect(ctx).toHaveProperty('requireRole')
     expect(ctx).toHaveProperty('requireScope')
     expect(ctx).toHaveProperty('roleStore')
     expect(ctx).toHaveProperty('registerDiagnostics')
     expect(ctx).toHaveProperty('registerMessageProvider')
     expect(ctx).toHaveProperty('registerRefresh')
     expect(ctx).toHaveProperty('registerExport')
+    expect(ctx).toHaveProperty('registerRole')
+    expect(ctx).toHaveProperty('registerScopes')
   })
 
   it('allows overriding properties', () => {

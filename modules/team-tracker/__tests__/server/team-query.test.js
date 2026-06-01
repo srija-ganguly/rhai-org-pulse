@@ -37,7 +37,8 @@ function setupRoutes(storageData) {
       getRoles: vi.fn(() => []),
       isAdmin: vi.fn(() => false),
       isTeamAdmin: vi.fn(() => false)
-    }
+    },
+    registerScopes: vi.fn()
   }
 
   const registerRoutes = require('../../server/index.js')

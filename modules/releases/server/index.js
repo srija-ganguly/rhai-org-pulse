@@ -109,7 +109,20 @@ function migrateStoragePaths(storage) {
 }
 
 module.exports = function registerRoutes(router, context) {
-  const { storage, requireAuth, requireAdmin, requireReleaseManager, requireScope, roleStore } = context;
+  const { storage, requireAuth, requireAdmin, requireRole, requireScope, roleStore } = context;
+  const requireReleaseManager = requireRole('release-manager');
+
+  // Register release-manager role
+  context.registerRole('release-manager', {
+    label: 'Release Manager',
+    description: 'Manage release planning, execution, and delivery'
+  });
+
+  // Register module scopes
+  context.registerScopes([
+    { key: 'releases:read', label: 'Releases (Read)', description: 'Read release planning, execution, and delivery data', category: 'Releases' },
+    { key: 'releases:write', label: 'Releases (Write)', description: 'Mutate release planning, execution, and delivery data', category: 'Releases' }
+  ]);
 
   // Run storage path migration on module startup (skip if already done)
   const migrationMarker = storage.readFromStorage('releases/.migration-complete');

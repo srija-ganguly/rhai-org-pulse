@@ -23,12 +23,16 @@ export function usePermissions() {
     }
   }
 
-  const tier = computed(() => permissionData.value?.tier || 'user')
+  const roles = computed(() => permissionData.value?.roles || [])
   const managedUids = computed(() => new Set(permissionData.value?.managedUids || []))
   const userUid = computed(() => permissionData.value?.uid || null)
-  const isAdmin = computed(() => tier.value === 'admin')
-  const isTeamAdmin = computed(() => tier.value === 'team-admin' || tier.value === 'admin')
-  const isManager = computed(() => tier.value === 'manager' || tier.value === 'admin')
+  const isAdmin = computed(() => roles.value.includes('admin'))
+  const isTeamAdmin = computed(() =>
+    roles.value.includes('admin') || roles.value.includes('team-admin')
+  )
+  const isManager = computed(() =>
+    permissionData.value?.isManager || roles.value.includes('admin')
+  )
 
   function canEdit(uid) {
     if (isAdmin.value) return true
@@ -42,7 +46,7 @@ export function usePermissions() {
 
   return {
     loading,
-    tier,
+    roles,
     managedUids,
     userUid,
     isAdmin,

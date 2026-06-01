@@ -104,7 +104,8 @@ function createApp() {
     storage: storageMock,
     requireAdmin: (req, res, next) => next(),
     requireTeamAdmin: (req, res, next) => next(),
-    requireScope: () => (req, res, next) => next()
+    requireScope: () => (req, res, next) => next(),
+    registerScopes: vi.fn()
   })
 
   app.use('/api/modules/team-tracker', router)
@@ -163,7 +164,8 @@ describe('Unified Sync Endpoint', () => {
         storage: storageMock,
         requireAdmin: (req, res, next) => next(),
     requireTeamAdmin: (req, res, next) => next(),
-    requireScope: () => (req, res, next) => next()
+    requireScope: () => (req, res, next) => next(),
+    registerScopes: vi.fn()
       })
       app2.use('/api/modules/team-tracker', router2)
 

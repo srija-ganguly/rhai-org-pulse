@@ -21,8 +21,23 @@ function aggregateEvents(events, month) {
     const ut = event.userType || 'unknown';
     p.byUserType[ut] = (p.byUserType[ut] || 0) + 1;
 
-    const pt = event.permissionTier || 'user';
-    p.byPermissionTier[pt] = (p.byPermissionTier[pt] || 0) + 1;
+    // Dual-key backward compat: old events have permissionTier (string),
+    // new events have roles (array)
+    if (event.permissionTier) {
+      // Legacy event format
+      const pt = event.permissionTier;
+      p.byPermissionTier[pt] = (p.byPermissionTier[pt] || 0) + 1;
+    } else if (event.roles) {
+      // New event format
+      const roles = event.roles.length > 0 ? event.roles : ['user'];
+      for (const role of roles) {
+        p.byRole = p.byRole || {};
+        p.byRole[role] = (p.byRole[role] || 0) + 1;
+      }
+    } else {
+      // Fallback for events with neither field
+      p.byPermissionTier['user'] = (p.byPermissionTier['user'] || 0) + 1;
+    }
   }
 
   for (const p of Object.values(pages)) {

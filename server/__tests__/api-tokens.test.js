@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 const apiTokens = require('../api-tokens')
+const { createScopeRegistry } = require('../../shared/server/scope-registry')
 
 function createMockStorage() {
   const store = {}
@@ -15,12 +16,33 @@ function createMockStorage() {
   }
 }
 
+function createTestScopeRegistry() {
+  const registry = createScopeRegistry()
+  const scopes = [
+    'roster:read', 'roster:write',
+    'metrics:read', 'metrics:write',
+    'github:read', 'github:write',
+    'gitlab:read', 'gitlab:write',
+    'team-tracker:read', 'team-tracker:write',
+    'releases:read', 'releases:write',
+    'ai-impact:read', 'ai-impact:write',
+    'upstream-pulse:read', 'upstream-pulse:write',
+    'health-metrics:read', 'health-metrics:write',
+    'admin:manage',
+    'tokens:manage',
+  ]
+  for (const key of scopes) {
+    registry.register(key, { label: key, description: key, category: 'Test', module: 'test' })
+  }
+  return registry
+}
+
 describe('api-tokens', () => {
   let storage
 
   beforeEach(() => {
     storage = createMockStorage()
-    apiTokens.init(storage)
+    apiTokens.init(storage, { scopeRegistry: createTestScopeRegistry() })
     apiTokens._resetForTest()
   })
 

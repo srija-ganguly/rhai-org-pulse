@@ -44,6 +44,7 @@ function setupAndGetProvider(storageData) {
     requireTeamAdmin: (req, res, next) => next(),
     requireScope: () => (req, res, next) => next(),
     roleStore: mockRoleStore,
+    registerScopes: vi.fn(),
     registerMessageProvider(id, fn) {
       capturedProvider = { id, fn }
     }
@@ -110,7 +111,7 @@ describe('field-completeness with exceptions — message provider', () => {
     data['team-data/teams.json'].teams.team_b.boards = [{ url: 'https://board.example.com/b' }]
 
     const { provider } = setupAndGetProvider(data)
-    const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
+    const result = await provider.fn({ uid: 'mgr1', isManager: true, isAdmin: false, isTeamAdmin: false })
     expect(result).toHaveLength(1)
     expect(result[0].text).toContain('1 person')
   })
@@ -129,7 +130,7 @@ describe('field-completeness with exceptions — message provider', () => {
     }
 
     const { provider } = setupAndGetProvider(data)
-    const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
+    const result = await provider.fn({ uid: 'mgr1', isManager: true, isAdmin: false, isTeamAdmin: false })
     // bob's missing field is excepted, so no warnings
     expect(result).toEqual([])
   })
@@ -149,7 +150,7 @@ describe('field-completeness with exceptions — message provider', () => {
     }
 
     const { provider } = setupAndGetProvider(data)
-    const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
+    const result = await provider.fn({ uid: 'mgr1', isManager: true, isAdmin: false, isTeamAdmin: false })
     // team_b still has missing field_t1, so warning remains
     expect(result).toHaveLength(1)
     expect(result[0].text).toContain('1 team')
@@ -172,7 +173,7 @@ describe('field-completeness with exceptions — message provider', () => {
     }
 
     const { provider } = setupAndGetProvider(data)
-    const result = await provider.fn({ uid: 'mgr1', permissionTier: 'manager' })
+    const result = await provider.fn({ uid: 'mgr1', isManager: true, isAdmin: false, isTeamAdmin: false })
     // All empty fields are excepted — no warnings
     expect(result).toEqual([])
   })
@@ -202,7 +203,8 @@ function setupRoutes(storageData) {
     requireAdmin: (req, res, next) => next(),
     requireTeamAdmin: (req, res, next) => next(),
     requireScope: () => (req, res, next) => next(),
-    roleStore: mockRoleStore
+    roleStore: mockRoleStore,
+    registerScopes: vi.fn()
   }
 
   const registerRoutes = require('../../server/index.js')
@@ -231,7 +233,7 @@ describe('field-completeness endpoint — includes fieldExceptions', () => {
       ]
     }
     const { handlers } = setupRoutes(data)
-    const req = { permissionTier: 'admin', query: {} }
+    const req = { isAdmin: true, isTeamAdmin: false, isManager: false, query: {} }
     const res = mockRes()
     handlers['GET /admin/field-completeness'](req, res)
     expect(res._body.fieldExceptions).toBeDefined()
@@ -242,7 +244,7 @@ describe('field-completeness endpoint — includes fieldExceptions', () => {
   it('returns empty fieldExceptions when no file exists', () => {
     const data = baseStorageData()
     const { handlers } = setupRoutes(data)
-    const req = { permissionTier: 'admin', query: {} }
+    const req = { isAdmin: true, isTeamAdmin: false, isManager: false, query: {} }
     const res = mockRes()
     handlers['GET /admin/field-completeness'](req, res)
     expect(res._body.fieldExceptions).toBeDefined()
@@ -266,7 +268,7 @@ describe('manager dashboard — includes fieldExceptions', () => {
       userEmail: 'mgr1@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'manager',
+      isManager: true,
       query: {}
     }
     const res = mockRes()

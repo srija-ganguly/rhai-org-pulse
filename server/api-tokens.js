@@ -20,19 +20,8 @@ const EXPIRATION_OPTIONS = {
   '1y': 365 * 24 * 60 * 60 * 1000
 };
 
-const VALID_SCOPES = [
-  'roster:read', 'roster:write',
-  'metrics:read', 'metrics:write',
-  'github:read', 'github:write',
-  'gitlab:read', 'gitlab:write',
-  'team-tracker:read', 'team-tracker:write',
-  'releases:read', 'releases:write',
-  'ai-impact:read', 'ai-impact:write',
-  'upstream-pulse:read', 'upstream-pulse:write',
-  'health-metrics:read', 'health-metrics:write',
-  'admin:manage',
-  'tokens:manage',
-];
+// Scope registry reference, set via init()
+let _scopeRegistry = null;
 
 /**
  * Old scope names that map to new unified releases scopes.
@@ -54,8 +43,10 @@ function validateScopes(scopes) {
   if (scopes === null || scopes === undefined) return null; // full access
   if (!Array.isArray(scopes)) throw new Error('scopes must be an array or null');
   if (scopes.length === 1 && scopes[0] === '*') return ['*'];
-  const invalid = scopes.filter(s => !VALID_SCOPES.includes(s));
-  if (invalid.length > 0) throw new Error(`Invalid scopes: ${invalid.join(', ')}`);
+  if (_scopeRegistry) {
+    const invalid = scopes.filter(s => !_scopeRegistry.isValid(s));
+    if (invalid.length > 0) throw new Error(`Invalid scopes: ${invalid.join(', ')}`);
+  }
   return [...new Set(scopes)]; // deduplicate
 }
 
@@ -166,10 +157,13 @@ function _migrateScopes() {
 }
 
 /**
- * Initialize the token store with a storage module.
+ * Initialize the token store with a storage module and optional scope registry.
+ * @param {object} storageModule
+ * @param {{ scopeRegistry?: object }} [options]
  */
-function init(storageModule) {
+function init(storageModule, options = {}) {
   _storage = storageModule;
+  _scopeRegistry = options.scopeRegistry || null;
   _hashIndex = null;
   _lastUsedWriteTimes = new Map();
   _migrateScopes();
@@ -401,7 +395,6 @@ module.exports = {
   TOKEN_PREFIX,
   MAX_TOKENS_PER_USER,
   EXPIRATION_OPTIONS,
-  VALID_SCOPES,
   // Internal for testing
   _hashToken,
   _resetForTest() {

@@ -4,7 +4,7 @@
  */
 
 const crypto = require('crypto');
-const { getPermissionTier } = require('./permissions');
+const { isManager } = require('./permissions');
 
 function blockDuringImpersonation(req, res, next) {
   if (req.isImpersonating) {
@@ -104,9 +104,10 @@ function createAuthMiddleware(readFromStorage, writeToStorage, options = {}) {
         }
       }
     }
-    req.isTeamAdmin = roleStore ? roleStore.hasRole(req.userEmail, 'team-admin') : false;
-    req.isReleaseManager = roleStore ? roleStore.hasRole(req.userEmail, 'release-manager') : false;
-    req.permissionTier = getPermissionTier(req.userUid, registry, req.isAdmin, req.isTeamAdmin, req.isReleaseManager);
+    req.userRoles = roleStore ? roleStore.getRoles(req.userEmail) : [];
+    req.isTeamAdmin = req.userRoles.includes('team-admin');
+    req.isReleaseManager = req.userRoles.includes('release-manager');
+    req.isManager = isManager(req.userUid, registry);
   }
 
   function applyImpersonation(req, res) {
@@ -137,9 +138,10 @@ function createAuthMiddleware(readFromStorage, writeToStorage, options = {}) {
     req.userEmail = target.email?.toLowerCase() || impersonateUid;
     req.userUid = impersonateUid;
     req.isAdmin = isAdmin(req.userEmail);
-    req.isTeamAdmin = roleStore ? roleStore.hasRole(req.userEmail, 'team-admin') : false;
-    req.isReleaseManager = roleStore ? roleStore.hasRole(req.userEmail, 'release-manager') : false;
-    req.permissionTier = getPermissionTier(req.userUid, registry, req.isAdmin, req.isTeamAdmin, req.isReleaseManager);
+    req.userRoles = roleStore ? roleStore.getRoles(req.userEmail) : [];
+    req.isTeamAdmin = req.userRoles.includes('team-admin');
+    req.isReleaseManager = req.userRoles.includes('release-manager');
+    req.isManager = isManager(req.userUid, registry);
     req.isImpersonating = true;
     req.impersonatedDisplayName = target.name || null;
 
@@ -220,11 +222,16 @@ function createAuthMiddleware(readFromStorage, writeToStorage, options = {}) {
     next()
   }
 
-  function requireReleaseManager(req, res, next) {
-    if (!req.isAdmin && !req.isReleaseManager) {
-      return res.status(403).json({ error: 'Release manager access required.' });
-    }
-    next();
+  function requireRole(role) {
+    return function(req, res, next) {
+      if (req.isAdmin) return next();
+      if (!roleStore || !roleStore.hasRole(req.userEmail, role)) {
+        return res.status(403).json({
+          error: `Role "${role}" required.`
+        });
+      }
+      next();
+    };
   }
 
   function requireScope(scope) {
@@ -250,7 +257,7 @@ function createAuthMiddleware(readFromStorage, writeToStorage, options = {}) {
     };
   }
 
-  return { authMiddleware, requireAdmin, requireTeamAdmin, requireReleaseManager, requireScope, isAdmin, seedRoles }
+  return { authMiddleware, requireAdmin, requireTeamAdmin, requireRole, requireScope, isAdmin, seedRoles }
 }
 
 let _emptySecretWarned = false;

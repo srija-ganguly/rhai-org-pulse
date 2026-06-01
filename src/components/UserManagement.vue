@@ -56,12 +56,9 @@
           <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Role</label>
           <select
             v-model="selectedRole"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            class="w-full h-[38px] px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            <option value="admin">Admin</option>
-            <option value="team-admin">Team Admin</option>
-            <option value="release-manager">Release Manager</option>
-            <option value="usage-metrics-viewer">Usage Metrics Viewer</option>
+            <option v-for="role in availableRoles" :key="role.id" :value="role.id">{{ role.label }}</option>
           </select>
         </div>
         <button
@@ -105,14 +102,8 @@
                 v-for="role in entry.roles"
                 :key="role"
                 class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mr-1"
-                :class="role === 'admin'
-                  ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                  : role === 'release-manager'
-                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
-                    : role === 'usage-metrics-viewer'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'"
-              >{{ { admin: 'Admin', 'team-admin': 'Team Admin', 'release-manager': 'Release Manager', 'usage-metrics-viewer': 'Metrics Viewer' }[role] || role }}</span>
+                :class="roleBadgeClasses(role)"
+              >{{ roleLabel(role) }}</span>
             </td>
             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ entry.assignedBy }}</td>
             <td class="px-4 py-3 text-right">
@@ -123,7 +114,7 @@
                 class="ml-1 text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                 :title="`Remove ${role} role`"
               >
-                Remove {{ { admin: 'Admin', 'team-admin': 'Team Admin', 'release-manager': 'Release Manager', 'usage-metrics-viewer': 'Metrics Viewer' }[role] || role }}
+                Remove {{ roleLabel(role) }}
               </button>
             </td>
           </tr>
@@ -191,6 +182,10 @@ const selectedPerson = ref(null) // { uid, name, email, title, inRegistry }
 const selectedRole = ref('admin')
 const assignError = ref(null)
 const revokeTarget = ref(null)
+const availableRoles = ref([
+  { id: 'admin', label: 'Admin' },
+  { id: 'team-admin', label: 'Team Admin' }
+])
 
 // LDAP search state
 const ldapResults = ref([])
@@ -203,6 +198,30 @@ const autocompleteRef = ref(null)
 let ldapDebounceTimer = null
 
 const currentUserEmail = computed(() => user.value?.email?.toLowerCase() || '')
+
+const roleLabelMap = computed(() => {
+  const map = {}
+  for (const role of availableRoles.value) {
+    map[role.id] = role.label
+  }
+  return map
+})
+
+const ROLE_BADGE_COLORS = {
+  admin: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+  'team-admin': 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+  'release-manager': 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
+  'usage-metrics-viewer': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+}
+const DEFAULT_BADGE_COLOR = 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+
+function roleBadgeClasses(role) {
+  return ROLE_BADGE_COLORS[role] || DEFAULT_BADGE_COLOR
+}
+
+function roleLabel(role) {
+  return roleLabelMap.value[role] || role
+}
 
 const canAssign = computed(() => {
   if (selectedPerson.value) return true
@@ -242,7 +261,21 @@ async function fetchRoles() {
   }
 }
 
-onMounted(fetchRoles)
+async function fetchAvailableRoles() {
+  try {
+    const data = await apiRequest('/roles/available')
+    if (data.roles && data.roles.length > 0) {
+      availableRoles.value = data.roles
+    }
+  } catch {
+    // Use defaults if endpoint not available
+  }
+}
+
+onMounted(() => {
+  fetchRoles()
+  fetchAvailableRoles()
+})
 
 // LDAP search
 function searchLdap(term) {

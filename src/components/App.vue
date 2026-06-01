@@ -36,7 +36,7 @@
         </svg>
         <span>
           Viewing as: <strong>{{ impersonatingDisplayName }}</strong> ({{ impersonatingUidValue }})
-          <span v-if="authUser?.permissionTier"> — {{ authUser.permissionTier }} tier</span>
+          <span v-if="authRoles && authRoles.length"> — {{ authRoles.join(', ') }}</span>
         </span>
         <button
           @click="handleStopImpersonating"

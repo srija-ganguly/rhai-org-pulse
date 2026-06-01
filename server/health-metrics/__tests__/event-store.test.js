@@ -23,7 +23,7 @@ describe('EventStore', () => {
       page: 'team-tracker::home',
       email: 'user@redhat.com',
       userType: 'Backend',
-      permissionTier: 'user',
+      roles: [],
     };
     store.append(event);
     const events = store.readMonth('2026-05');
@@ -36,29 +36,29 @@ describe('EventStore', () => {
   });
 
   it('partitions events by month', () => {
-    store.append({ ts: '2026-03-15T10:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
-    store.append({ ts: '2026-04-15T10:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
+    store.append({ ts: '2026-03-15T10:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
+    store.append({ ts: '2026-04-15T10:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
     expect(store.readMonth('2026-03')).toHaveLength(1);
     expect(store.readMonth('2026-04')).toHaveLength(1);
   });
 
   it('lists month files', () => {
-    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
-    store.append({ ts: '2026-05-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
+    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
+    store.append({ ts: '2026-05-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
     const months = store.listMonthFiles();
     expect(months).toEqual(['2026-03', '2026-05']);
   });
 
   it('deletes a month file', () => {
-    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
+    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
     expect(store.readMonth('2026-03')).toHaveLength(1);
     store.deleteMonthFile('2026-03');
     expect(store.readMonth('2026-03')).toEqual([]);
   });
 
   it('rewrites a month file with filtered events', () => {
-    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
-    store.append({ ts: '2026-03-15T00:00:00.000Z', page: 'a::c', email: 'b@b.com', userType: 'y', permissionTier: 'admin' });
+    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
+    store.append({ ts: '2026-03-15T00:00:00.000Z', page: 'a::c', email: 'b@b.com', userType: 'y', roles: ['admin'] });
     const events = store.readMonth('2026-03');
     store.rewriteMonth('2026-03', [events[1]]);
     const remaining = store.readMonth('2026-03');
@@ -68,7 +68,7 @@ describe('EventStore', () => {
 
   it('buffers events during pruning', () => {
     store.startPruning();
-    store.append({ ts: '2026-05-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
+    store.append({ ts: '2026-05-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
     // During pruning, events should not be written
     expect(store.readMonth('2026-05')).toEqual([]);
     store.finishPruning();
@@ -77,8 +77,8 @@ describe('EventStore', () => {
   });
 
   it('deletes all events', () => {
-    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
-    store.append({ ts: '2026-04-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', permissionTier: 'user' });
+    store.append({ ts: '2026-03-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
+    store.append({ ts: '2026-04-01T00:00:00.000Z', page: 'a::b', email: 'a@b.com', userType: 'x', roles: [] });
     store.deleteAllEvents();
     expect(store.listMonthFiles()).toEqual([]);
   });

@@ -7,7 +7,6 @@ const auditLog = require('./audit-log');
 
 const ROLES_FILE = 'roles.json';
 const ALLOWLIST_FILE = 'allowlist.json';
-const VALID_ROLES = ['admin', 'team-admin', 'release-manager', 'usage-metrics-viewer'];
 const DEMO_MODE = process.env.DEMO_MODE === 'true';
 
 /** Guard against prototype pollution via user-controlled object keys. */
@@ -32,6 +31,7 @@ function createRoleStore(readFromStorage, writeToStorage, options = {}) {
   const getAuthDomain = typeof options.getAuthDomain === 'function'
     ? options.getAuthDomain
     : () => null;
+  const roleRegistry = options.roleRegistry || null;
 
   // Cache for getAuthDomain result (30s TTL)
   let _cachedDomain = undefined;
@@ -76,7 +76,9 @@ function createRoleStore(readFromStorage, writeToStorage, options = {}) {
 
   function assignRole(email, role, actor) {
     if (!email || !role) throw new Error('email and role are required');
-    if (!VALID_ROLES.includes(role)) throw new Error(`Invalid role: ${role}. Must be one of: ${VALID_ROLES.join(', ')}`);
+    if (roleRegistry && !roleRegistry.isValid(role)) {
+      throw new Error(`Invalid role: ${role}. Must be one of: ${roleRegistry.getAll().map(r => r.id).join(', ')}`);
+    }
 
     if (DEMO_MODE) {
       return { demo: true, message: 'Demo mode -- changes are not saved' };
@@ -117,7 +119,9 @@ function createRoleStore(readFromStorage, writeToStorage, options = {}) {
 
   function revokeRole(email, role, actor) {
     if (!email || !role) throw new Error('email and role are required');
-    if (!VALID_ROLES.includes(role)) throw new Error(`Invalid role: ${role}. Must be one of: ${VALID_ROLES.join(', ')}`);
+    if (roleRegistry && !roleRegistry.isValid(role)) {
+      throw new Error(`Invalid role: ${role}. Must be one of: ${roleRegistry.getAll().map(r => r.id).join(', ')}`);
+    }
 
     if (DEMO_MODE) {
       return { demo: true, message: 'Demo mode -- changes are not saved' };
@@ -263,4 +267,4 @@ function createRoleStore(readFromStorage, writeToStorage, options = {}) {
   };
 }
 
-module.exports = { createRoleStore, normalizeEmail, VALID_ROLES };
+module.exports = { createRoleStore, normalizeEmail };

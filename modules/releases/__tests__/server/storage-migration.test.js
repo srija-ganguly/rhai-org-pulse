@@ -59,9 +59,11 @@ function createMockContext(storage) {
     storage,
     requireAuth: vi.fn((req, res, next) => next()),
     requireAdmin: vi.fn((req, res, next) => next()),
-    requireReleaseManager: vi.fn((req, res, next) => next()),
+    requireRole: vi.fn(() => (req, res, next) => next()),
     requireScope: vi.fn(() => (req, res, next) => next()),
-    roleStore: { getRoles: vi.fn(() => []) }
+    roleStore: { getRoles: vi.fn(() => []) },
+    registerRole: vi.fn(),
+    registerScopes: vi.fn()
   };
 }
 

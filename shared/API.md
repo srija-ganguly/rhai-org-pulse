@@ -22,7 +22,7 @@ Core team owns `shared/` via CODEOWNERS. Changes require core team review.
 | `useAuth()` | Current user info, admin status, team-admin status, roles. Exports `isAdmin`, `isTeamAdmin`, `roles`, `refresh()`. |
 | `useGithubStats()` | GitHub contribution data with fetch/refresh |
 | `useGitlabStats()` | GitLab contribution data with fetch/refresh. Exports `getProfileUrls(gitlabUsername)` returning `[{ baseUrl, label, url }]` for per-instance profile links. |
-| `usePermissions()` | Reactive permission state: tier, managed UIDs, `isAdmin`, `isTeamAdmin`, `canEdit(uid)`, `canEditTeam(teamId)` |
+| `usePermissions()` | Reactive permission state: roles, managed UIDs, `isAdmin`, `isTeamAdmin`, `isManager`, `canEdit(uid)`, `canEditTeam(teamId)` |
 | `useTeams()` | Team CRUD, member assignment, bulk assign, unassigned people |
 | `useFieldDefinitions()` | Field definition CRUD, person field value updates |
 | `useAllowlist()` | Allowlist management (admin only) |
@@ -53,7 +53,7 @@ Core team owns `shared/` via CODEOWNERS. Changes require core team review.
 | `Toast.vue` | `@shared/client/components/Toast.vue` | Toast notification |
 | `LoadingOverlay.vue` | `@shared/client/components/LoadingOverlay.vue` | Full-screen loading spinner |
 | `RefreshModal.vue` | `@shared/client/components/RefreshModal.vue` | Progress modal for data refresh operations |
-| `PermissionBadge.vue` | `@shared/client/components/PermissionBadge.vue` | Small badge showing user's permission tier |
+| `PermissionBadge.vue` | `@shared/client/components/PermissionBadge.vue` | Small badge showing user's role |
 | `PersonReferenceField.vue` | `@shared/client/components/PersonReferenceField.vue` | Renders person references (linked -> clickable, unlinked -> plain text) |
 | `AppMessages.vue` | `@shared/client/components/AppMessages.vue` | Stacked app-wide message banners (warning/info/error) with dismiss |
 
@@ -63,15 +63,17 @@ Core team owns `shared/` via CODEOWNERS. Changes require core team review.
 |--------|-------------|
 | `storage` | `{ readFromStorage, writeToStorage, writeToStorageAtomic, listStorageFiles, deleteStorageDirectory }` — filesystem-backed JSON storage |
 | `demoStorage` | `{ readFromStorage, writeToStorage, writeToStorageAtomic, listStorageFiles, deleteStorageDirectory }` — fixture-backed read-only storage for demo mode |
-| `createAuthMiddleware(readFromStorage, writeToStorage, options)` | Factory returning `{ authMiddleware, requireAdmin, requireTeamAdmin, requireScope, isAdmin, seedRoles }`. `requireScope(scopeName)` returns Express middleware that enforces the given scope for token-authenticated requests (browser/proxy auth is unrestricted). Options: `{ tokenValidator, roleStore }` |
-| `createRoleStore(readFromStorage, writeToStorage, options?)` | Factory returning role CRUD: `{ getRoles, hasRole, assignRole, revokeRole, listAssignments, getAdminEmails, migrateFromAllowlist, migrateEmailDomains, invalidateCache }`. Options: `{ getAuthDomain }` — function returning the auth email domain string (or null). When set, all email arguments are normalized to this domain before storage/lookup. |
+| `createAuthMiddleware(readFromStorage, writeToStorage, options)` | Factory returning `{ authMiddleware, requireAdmin, requireTeamAdmin, requireRole, requireScope, isAdmin, seedRoles }`. `requireRole(roleName)` returns Express middleware requiring a specific role (admins always pass). `requireScope(scopeName)` returns Express middleware that enforces the given scope for token-authenticated requests (browser/proxy auth is unrestricted). Options: `{ tokenValidator, roleStore }` |
+| `createRoleStore(readFromStorage, writeToStorage, options?)` | Factory returning role CRUD: `{ getRoles, hasRole, assignRole, revokeRole, listAssignments, getAdminEmails, migrateFromAllowlist, migrateEmailDomains, invalidateCache }`. Options: `{ getAuthDomain, roleRegistry }` — `getAuthDomain`: function returning the auth email domain string (or null), normalizes emails before storage/lookup. `roleRegistry`: role registry instance, when set `assignRole`/`revokeRole` validate against registered roles. |
 | `normalizeEmail(email, authDomain)` | Normalize an email's domain to the given auth domain. Returns the email with its domain replaced, or the original if no authDomain. Exported for testing. |
 | `blockDuringImpersonation` | Express middleware that returns 403 during impersonation. Exported from auth.js. |
 | `googleSheets` | `{ getAuth, discoverSheetNames, fetchRawSheet }` — Google Sheets auth and raw data fetching |
 | `roster` | `{ readRosterFull, getAllPeople, getPeopleByOrg, getOrgKeys, getTeamRollup, getOrgDisplayNames }` — shared roster data access |
 | `rosterSync` | `{ runSync, isSyncInProgress }` — barrel re-export of the consolidated sync pipeline (LDAP + Google Sheets + lifecycle tracking). `runSync` is an alias for `runConsolidatedSync` from `roster-sync/consolidated-sync`. Sub-modules: `roster-sync/consolidated-sync` (runConsolidatedSync, isSyncInProgress), `roster-sync/config` (loadConfig, saveConfig, isConfigured, getOrgDisplayNames, updateSyncStatus), `roster-sync/constants`, `roster-sync/ldap`, `roster-sync/sheets`, `roster-sync/merge`, `roster-sync/username-inference`, `roster-sync/lifecycle` (mergePerson) |
 | `jira` | `{ JIRA_HOST, getJiraAuth, jiraRequest, fetchAllJqlResults, fetchProjectVersions }` — Jira Cloud API helpers: auth (Basic via `JIRA_TOKEN`/`JIRA_EMAIL` env vars), request wrapper with 429 retry, cursor-based JQL pagination via `/rest/api/3/search/jql`, project version catalog via `/rest/api/3/project/{key}/versions` |
-| `permissions` | `{ LDAP_FIELDS, buildManagerMap, getManagedUids, getDirectReports, isManager, getPermissionTier, canEditPerson }` — RBAC logic: manager subtree computation, direct reports, permission tier detection, authorization checks |
+| `permissions` | `{ LDAP_FIELDS, buildManagerMap, getManagedUids, getDirectReports, isManager, canEditPerson }` — RBAC logic: manager subtree computation, direct reports, authorization checks |
+| `role-registry` | `{ createRoleRegistry }` — dynamic role registry. Modules register roles via `context.registerRole()`. Methods: `register(id, config)`, `isValid(id)`, `getAll()`, `get(id)`. |
+| `scope-registry` | `{ createScopeRegistry }` — dynamic scope registry for API tokens. Modules register scopes via `context.registerScopes()`. Methods: `register(key, config)`, `isValid(key)`, `getAll()`, `getValidKeys()`. |
 | `module-context` | `{ buildModuleContext, createTestContext }` — builds per-module frozen context with scoped registration hooks. `createTestContext(overrides)` provides a mock context for unit tests. |
 | `refresh-registry` | `{ createRefreshRegistry }` — ordered execution of module refresh handlers. Registry with `register`, `get`, `getAll`, `runAll` (sequential, sorted by `order`), `getStatus`. |
 | `export-registry` | `{ createExportRegistry }` — module data export hooks. Registry with `register`, `getAll`, `run` (iterates with error isolation). |

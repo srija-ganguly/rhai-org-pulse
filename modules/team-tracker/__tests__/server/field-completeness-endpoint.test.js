@@ -40,7 +40,8 @@ function setupRoutes(storageData) {
     requireAdmin: (req, res, next) => next(),
     requireTeamAdmin: (req, res, next) => next(),
     requireScope: () => (req, res, next) => next(),
-    roleStore: mockRoleStore
+    roleStore: mockRoleStore,
+    registerScopes: vi.fn()
   }
 
   const registerRoutes = require('../../server/index.js')
@@ -121,7 +122,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'user'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -136,7 +137,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'mgr1@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'manager'
+      isManager: true
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -151,7 +152,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: false,
       isTeamAdmin: true,
-      permissionTier: 'team-admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -170,7 +171,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -188,7 +189,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -209,7 +210,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -227,7 +228,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -244,7 +245,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -262,7 +263,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)
@@ -283,7 +284,7 @@ describe('GET /admin/field-completeness', () => {
       userEmail: 'alice@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /admin/field-completeness'](req, res)

@@ -223,6 +223,12 @@ function startPeriodicRosterPush(storage) {
 module.exports = function registerRoutes(router, context) {
   const { requireScope } = context;
 
+  // Register module scopes
+  context.registerScopes([
+    { key: 'upstream-pulse:read', label: 'Upstream Pulse (Read)', description: 'Read upstream pulse data', category: 'Upstream Pulse' },
+    { key: 'upstream-pulse:write', label: 'Upstream Pulse (Write)', description: 'Mutate upstream pulse data', category: 'Upstream Pulse' }
+  ]);
+
   function handleProxyError(res, err) {
     const status = err.upstreamStatus || 502;
     console.error('[upstream-pulse]', err.message);

@@ -46,7 +46,8 @@ function setupRoutes(storageData) {
     requireAdmin: (req, res, next) => next(),
     requireTeamAdmin: (req, res, next) => next(),
     requireScope: () => (req, res, next) => next(),
-    roleStore: mockRoleStore
+    roleStore: mockRoleStore,
+    registerScopes: vi.fn()
   }
 
   const registerRoutes = require('../../server/index.js')
@@ -133,7 +134,7 @@ describe('GET /manager/dashboard', () => {
       userEmail: 'mgr1@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'manager'
+      isManager: true
     }
 
     handlers['GET /manager/dashboard'](req, res)
@@ -159,7 +160,7 @@ describe('GET /manager/dashboard', () => {
       userEmail: 'nobody@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'user'
+      isManager: false
     }
 
     handlers['GET /manager/dashboard'](req, res)
@@ -179,7 +180,7 @@ describe('GET /manager/dashboard', () => {
       userEmail: 'charlie@example.com',
       isAdmin: true,
       isTeamAdmin: false,
-      permissionTier: 'admin'
+      isManager: false
     }
 
     handlers['GET /manager/dashboard'](req, res)
@@ -198,7 +199,7 @@ describe('GET /manager/dashboard', () => {
       userEmail: 'charlie@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'user'
+      isManager: false
     }
 
     handlers['GET /manager/dashboard'](req, res)
@@ -215,7 +216,7 @@ describe('GET /manager/dashboard', () => {
       userEmail: 'mgr1@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'manager'
+      isManager: true
     }
 
     handlers['GET /manager/dashboard'](req, res)
@@ -235,7 +236,7 @@ describe('GET /manager/dashboard', () => {
       userEmail: 'mgr1@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'manager'
+      isManager: true
     }
 
     handlers['GET /manager/dashboard'](req, res)
@@ -253,7 +254,7 @@ describe('GET /manager/dashboard', () => {
       userEmail: 'mgr1@example.com',
       isAdmin: false,
       isTeamAdmin: false,
-      permissionTier: 'manager'
+      isManager: true
     }
 
     handlers['GET /manager/dashboard'](req, res)

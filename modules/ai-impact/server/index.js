@@ -2,6 +2,12 @@ module.exports = function registerRoutes(router, context) {
   const { storage, requireAdmin, requireScope } = context;
   const { readFromStorage, writeToStorage } = storage;
 
+  // Register module scopes
+  context.registerScopes([
+    { key: 'ai-impact:read', label: 'AI Impact (Read)', description: 'Read AI impact data', category: 'AI Impact' },
+    { key: 'ai-impact:write', label: 'AI Impact (Write)', description: 'Push/clear AI impact data', category: 'AI Impact' }
+  ]);
+
   const DEMO_MODE = process.env.DEMO_MODE === 'true';
 
   // Jira helpers from shared package (no duplication)

@@ -1,6 +1,12 @@
 module.exports = function registerRoutes(router, context) {
-  const { storage, requireAdmin, requireTeamAdmin, requireScope, roleStore } = context;
+  const { storage, requireAdmin, requireTeamAdmin, requireScope } = context;
   const { readFromStorage, writeToStorage, listStorageFiles, deleteStorageDirectory } = storage;
+
+  // Register module scopes
+  context.registerScopes([
+    { key: 'team-tracker:read', label: 'Team Tracker (Read)', description: 'Read team structure, fields, snapshots', category: 'Team Tracker' },
+    { key: 'team-tracker:write', label: 'Team Tracker (Write)', description: 'Mutate team structure, fields, snapshots', category: 'Team Tracker' }
+  ]);
 
   const DEMO_MODE = process.env.DEMO_MODE === 'true';
   const { JIRA_HOST, jiraRequest } = require('../../../shared/server/jira');
@@ -519,9 +525,9 @@ module.exports = function registerRoutes(router, context) {
     res.json({
       email: req.userEmail,
       uid: req.userUid,
-      tier: req.permissionTier,
-      managedUids: managed,
-      roles: roleStore ? roleStore.getRoles(req.userEmail) : []
+      roles: req.userRoles || [],
+      isManager: req.isManager || false,
+      managedUids: managed
     });
   });
 
@@ -683,7 +689,7 @@ module.exports = function registerRoutes(router, context) {
    *         description: Not a team-admin or admin
    */
   router.get('/admin/field-completeness', requireScope('roster:read'), function(req, res) {
-    if (req.permissionTier !== 'admin' && req.permissionTier !== 'team-admin') {
+    if (!req.isAdmin && !req.isTeamAdmin) {
       return res.status(403).json({ error: 'Requires team-admin or admin role' });
     }
 
@@ -1927,7 +1933,7 @@ module.exports = function registerRoutes(router, context) {
    */
   router.get('/structure/audit-log', requireScope('team-tracker:read'), function(req, res) {
     // Only admin and managers can view audit log
-    if (req.permissionTier === 'user') {
+    if (!req.isAdmin && !req.isTeamAdmin && !req.isManager) {
       return res.status(403).json({ error: 'Manager or admin access required' });
     }
     const limit = req.query.limit ? Math.max(1, Math.min(200, parseInt(req.query.limit, 10) || 50)) : undefined;
@@ -2831,7 +2837,8 @@ module.exports = function registerRoutes(router, context) {
           ? [...permissions.getManagedUids(req.userUid, managerMap)]
           : [];
         rosterResponse.permissions = {
-          tier: req.permissionTier,
+          roles: req.userRoles || [],
+          isManager: req.isManager || false,
           uid: req.userUid,
           managedUids: managed
         };
@@ -4516,7 +4523,7 @@ module.exports = function registerRoutes(router, context) {
     context.registerMessageProvider('team-tracker:field-completeness', async function(user) {
       // Early bailout: skip all disk I/O for non-managers.
       if (!user.uid) return [];
-      if (user.permissionTier === 'user') return [];
+      if (!user.isAdmin && !user.isTeamAdmin && !user.isManager) return [];
 
       const registry = readFromStorage('team-data/registry.json');
       if (!registry || !registry.people) return [];
@@ -4582,7 +4589,7 @@ module.exports = function registerRoutes(router, context) {
       const verb = (incompletePersonCount + incompleteTeamCount) === 1 ? 'has' : 'have';
 
       // Link admins/team-admins to data quality tab; managers to their dashboard
-      const isAdminLike = user.permissionTier === 'admin' || user.permissionTier === 'team-admin';
+      const isAdminLike = user.isAdmin || user.isTeamAdmin;
       const href = isAdminLike
         ? '#/team-tracker/manage?tab=data-quality'
         : '#/team-tracker/manager-dashboard';

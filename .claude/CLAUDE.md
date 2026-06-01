@@ -219,7 +219,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 
 **GET:**
 - `/api/healthz` — health check (no auth)
-- `/api/whoami` — current user info (proxy + token auth). Includes `permissionTier`, `isTeamAdmin`, `roles`.
+- `/api/whoami` — current user info (proxy + token auth). Includes `isManager`, `isTeamAdmin`, `roles`.
 - `/api/site-config` — site configuration
 - `/api/messages` — app-wide messages (computed + stored)
 - `/api/tokens` — current user's API tokens
@@ -235,6 +235,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/allowlist` — authorized email list
 - `/api/roles/me` — current user's roles
 - `/api/roles` — all role assignments (admin)
+- `/api/roles/available` — all registered roles from the role registry
 - `/api/admin/refresh/status` — refresh registry status (admin)
 - `/api/admin/roster-sync/config` — roster sync config
 - `/api/admin/roster-sync/status` — sync status
@@ -242,7 +243,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/team-tracker/org-teams` — org-roster teams with member counts
 - `/api/modules/team-tracker/org-teams/:teamKey` — single team detail
 - `/api/modules/team-tracker/org-teams/:teamKey/members` — team members
-- `/api/modules/team-tracker/permissions/me` — permission tier + managed UIDs
+- `/api/modules/team-tracker/permissions/me` — roles, isManager + managed UIDs
 - `/api/modules/team-tracker/manager/dashboard` — manager dashboard data
 - `/api/modules/team-tracker/admin/field-completeness` — all people/teams with field data for data quality auditing (team-admin/admin)
 - `/api/modules/team-tracker/structure/teams` — list teams

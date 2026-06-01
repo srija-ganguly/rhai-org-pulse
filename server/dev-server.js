@@ -24,6 +24,8 @@ const storageModule = DEMO_MODE ? require('../shared/server/demo-storage') : req
 const { readFromStorage, writeToStorage } = storageModule;
 const { createAuthMiddleware, proxySecretGuard, blockDuringImpersonation } = require('../shared/server/auth');
 const { createRoleStore } = require('../shared/server/role-store');
+const { createRoleRegistry } = require('../shared/server/role-registry');
+const { createScopeRegistry } = require('../shared/server/scope-registry');
 const auditLog = require('../shared/server/audit-log');
 const apiTokens = require('./api-tokens');
 
@@ -51,8 +53,43 @@ if (DEMO_MODE) {
   console.log('Running in DEMO MODE - using fixture data, Jira/GitHub APIs disabled');
 }
 
-// Initialize API token store
-apiTokens.init(storageModule);
+// ─── Registries ───
+
+const roleRegistry = createRoleRegistry();
+const scopeRegistry = createScopeRegistry();
+
+// Platform roles
+roleRegistry.register('admin', { label: 'Admin', description: 'Full platform access', module: 'platform' });
+roleRegistry.register('team-admin', { label: 'Team Admin', description: 'Team structure management', module: 'platform' });
+
+// Platform scopes
+const platformScopes = [
+  { key: 'roster:read', label: 'Roster (Read)', description: 'Read roster and org data', category: 'Roster' },
+  { key: 'roster:write', label: 'Roster (Write)', description: 'Trigger roster sync and refresh', category: 'Roster' },
+  { key: 'metrics:read', label: 'Metrics (Read)', description: 'Read person/team metrics and trends', category: 'Metrics' },
+  { key: 'metrics:write', label: 'Metrics (Write)', description: 'Refresh metrics', category: 'Metrics' },
+  { key: 'github:read', label: 'GitHub (Read)', description: 'Read GitHub contribution data', category: 'GitHub' },
+  { key: 'github:write', label: 'GitHub (Write)', description: 'Refresh GitHub data', category: 'GitHub' },
+  { key: 'gitlab:read', label: 'GitLab (Read)', description: 'Read GitLab contribution data', category: 'GitLab' },
+  { key: 'gitlab:write', label: 'GitLab (Write)', description: 'Refresh GitLab data', category: 'GitLab' },
+  { key: 'admin:manage', label: 'Admin', description: 'Admin-only shell operations', category: 'Admin' },
+  { key: 'tokens:manage', label: 'Tokens', description: 'Manage own tokens (always implicitly granted)', category: 'Admin' }
+];
+for (const s of platformScopes) {
+  scopeRegistry.register(s.key, { ...s, module: 'platform' });
+}
+
+// Health-metrics roles and scopes (health-metrics is NOT a module — see plan A.1)
+roleRegistry.register('usage-metrics-viewer', {
+  label: 'Usage Metrics Viewer',
+  description: 'Can view health/usage metrics dashboards',
+  module: 'health-metrics'
+});
+scopeRegistry.register('health-metrics:read', { label: 'Health Metrics (Read)', description: 'Read health metrics data', category: 'Health Metrics', module: 'health-metrics' });
+scopeRegistry.register('health-metrics:write', { label: 'Health Metrics (Write)', description: 'Mutate health metrics data', category: 'Health Metrics', module: 'health-metrics' });
+
+// Initialize API token store with scope registry
+apiTokens.init(storageModule, { scopeRegistry });
 
 const PORT = process.env.API_PORT || 3001;
 
@@ -114,9 +151,10 @@ const roleStore = createRoleStore(readFromStorage, writeToStorage, {
     }
     const config = readFromStorage('site-config.json');
     return config?.authEmailDomain || null;
-  }
+  },
+  roleRegistry
 });
-const { authMiddleware, requireAdmin, requireTeamAdmin, requireReleaseManager, requireScope, seedRoles } = createAuthMiddleware(readFromStorage, writeToStorage, {
+const { authMiddleware, requireAdmin, requireTeamAdmin, requireRole, requireScope, seedRoles } = createAuthMiddleware(readFromStorage, writeToStorage, {
   tokenValidator: apiTokens,
   roleStore
 });
@@ -216,12 +254,17 @@ app.use(authMiddleware);
  *                   type: string
  *                 isAdmin:
  *                   type: boolean
+ *                 isTeamAdmin:
+ *                   type: boolean
+ *                 isManager:
+ *                   type: boolean
+ *                 roles:
+ *                   type: array
+ *                   items:
+ *                     type: string
  *                 authMethod:
  *                   type: string
  *                   enum: [token, proxy, local-dev]
- *                 permissionTier:
- *                   type: string
- *                   enum: [admin, manager, user]
  *                 impersonating:
  *                   type: boolean
  *                   description: Present and true when X-Impersonate-Uid header is active
@@ -245,8 +288,8 @@ app.get('/api/whoami', function(req, res) {
     displayName,
     isAdmin: req.isAdmin,
     isTeamAdmin: req.isTeamAdmin || false,
-    roles: roleStore.getRoles(req.userEmail),
-    permissionTier: req.permissionTier || (req.isAdmin ? 'admin' : 'user'),
+    isManager: req.isManager || false,
+    roles: req.userRoles || [],
     authMethod: req.authMethod || (req.headers['x-forwarded-email'] ? 'proxy' : 'local-dev')
   };
 
@@ -395,7 +438,8 @@ app.get('/api/messages', async function(req, res) {
     uid: req.userUid,
     isAdmin: req.isAdmin,
     isTeamAdmin: req.isTeamAdmin,
-    permissionTier: req.permissionTier
+    isManager: req.isManager,
+    roles: req.userRoles
   };
 
   try {
@@ -686,37 +730,24 @@ app.get('/api/admin/refresh/status', requireAdmin, requireScope('admin:manage'),
  *                           type: string
  */
 app.get('/api/token-scopes', function(req, res) {
+  const scopes = scopeRegistry.getAll();
+  const readOnlyScopes = scopes
+    .filter(s => s.key.endsWith(':read'))
+    .map(s => s.key);
+
   res.json({
-    scopes: [
-      { key: 'roster:read', label: 'Roster (Read)', description: 'Read roster and org data', category: 'Roster' },
-      { key: 'roster:write', label: 'Roster (Write)', description: 'Trigger roster sync and refresh', category: 'Roster' },
-      { key: 'metrics:read', label: 'Metrics (Read)', description: 'Read person/team metrics and trends', category: 'Metrics' },
-      { key: 'metrics:write', label: 'Metrics (Write)', description: 'Refresh metrics', category: 'Metrics' },
-      { key: 'github:read', label: 'GitHub (Read)', description: 'Read GitHub contribution data', category: 'GitHub' },
-      { key: 'github:write', label: 'GitHub (Write)', description: 'Refresh GitHub data', category: 'GitHub' },
-      { key: 'gitlab:read', label: 'GitLab (Read)', description: 'Read GitLab contribution data', category: 'GitLab' },
-      { key: 'gitlab:write', label: 'GitLab (Write)', description: 'Refresh GitLab data', category: 'GitLab' },
-      { key: 'team-tracker:read', label: 'Team Tracker (Read)', description: 'Read team structure, fields, snapshots', category: 'Team Tracker' },
-      { key: 'team-tracker:write', label: 'Team Tracker (Write)', description: 'Mutate team structure, fields, snapshots', category: 'Team Tracker' },
-      { key: 'releases:read', label: 'Releases (Read)', description: 'Read release planning, execution, and delivery data', category: 'Releases' },
-      { key: 'releases:write', label: 'Releases (Write)', description: 'Mutate release planning, execution, and delivery data', category: 'Releases' },
-      { key: 'ai-impact:read', label: 'AI Impact (Read)', description: 'Read AI impact data', category: 'AI Impact' },
-      { key: 'ai-impact:write', label: 'AI Impact (Write)', description: 'Push/clear AI impact data', category: 'AI Impact' },
-      { key: 'upstream-pulse:read', label: 'Upstream Pulse (Read)', description: 'Read upstream pulse data', category: 'Upstream Pulse' },
-      { key: 'upstream-pulse:write', label: 'Upstream Pulse (Write)', description: 'Mutate upstream pulse data', category: 'Upstream Pulse' },
-      { key: 'health-metrics:read', label: 'Health Metrics (Read)', description: 'Read health metrics data', category: 'Health Metrics' },
-      { key: 'health-metrics:write', label: 'Health Metrics (Write)', description: 'Mutate health metrics data', category: 'Health Metrics' },
-      { key: 'admin:manage', label: 'Admin', description: 'Admin-only shell operations', category: 'Admin' },
-      { key: 'tokens:manage', label: 'Tokens', description: 'Manage own tokens (always implicitly granted)', category: 'Admin' }
-    ],
+    scopes: scopes.map(s => ({
+      key: s.key,
+      label: s.label,
+      description: s.description,
+      category: s.category
+    })),
     presets: [
       {
         key: 'read-only',
         label: 'Read Only',
         description: 'Read access to all data, no mutations',
-        scopes: ['roster:read', 'metrics:read', 'github:read', 'gitlab:read',
-                 'team-tracker:read', 'releases:read', 'ai-impact:read',
-                 'upstream-pulse:read', 'health-metrics:read']
+        scopes: readOnlyScopes
       },
       {
         key: 'full-access',
@@ -1282,6 +1313,41 @@ app.post('/api/roles/revoke', requireAdmin, requireScope('admin:manage'), blockD
   }
 });
 
+/**
+ * @openapi
+ * /api/roles/available:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Get available role catalog
+ *     description: Returns all registered roles (platform + module). Admin only.
+ *     responses:
+ *       200:
+ *         description: Role catalog
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 roles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       label:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       module:
+ *                         type: string
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+app.get('/api/roles/available', requireAdmin, function(req, res) {
+  res.json({ roles: roleRegistry.getAll() });
+});
+
 // ─── Routes: Git-Static Modules ───
 
 /**
@@ -1360,7 +1426,7 @@ messageRegistry.registerProvider('backup-staleness', async function(userContext)
     return [];
   }
 });
-const coreServices = { storage: storageModule, requireAuth: authMiddleware, requireAdmin, requireTeamAdmin, requireReleaseManager, requireScope, roleStore };
+const coreServices = { storage: storageModule, requireAuth: authMiddleware, requireAdmin, requireTeamAdmin, requireRole, requireScope, roleStore, roleRegistry, scopeRegistry };
 const registries = { diagnostics: diagnosticsRegistry, messages: messageRegistry, refresh: refreshRegistry, exports: exportRegistry };
 
 const persistedState = loadModuleState(storageModule);

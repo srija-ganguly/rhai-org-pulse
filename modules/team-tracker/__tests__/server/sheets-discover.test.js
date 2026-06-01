@@ -54,7 +54,8 @@ function createTestApp() {
     requireAdmin: (req, res, next) => next(),
     requireTeamAdmin: (req, res, next) => next(),
     requireScope: () => (req, res, next) => next(),
-    registerDiagnostics: vi.fn()
+    registerDiagnostics: vi.fn(),
+    registerScopes: vi.fn()
   }
   registerRoutes(router, context)
   app.use('/api/modules/team-tracker', router)

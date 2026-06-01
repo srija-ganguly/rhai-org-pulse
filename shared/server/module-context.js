@@ -12,9 +12,11 @@
  * @property {Function} requireAuth    - Express middleware — requires authenticated user
  * @property {Function} requireAdmin   - Express middleware — requires admin role
  * @property {Function} requireTeamAdmin - Express middleware — requires team-admin or admin role
- * @property {Function} requireReleaseManager - Express middleware — requires release-manager role
+ * @property {Function} requireRole    - Factory: requireRole(role) returns Express middleware
  * @property {Function} requireScope   - Factory returning Express middleware for API token scope check
  * @property {object} roleStore        - Role store instance (getRole, setRole, etc.)
+ * @property {object} [roleRegistry]   - Role registry for registerRole
+ * @property {object} [scopeRegistry]  - Scope registry for registerScopes
  */
 
 /**
@@ -35,13 +37,15 @@
  * @property {Function} requireAuth    - Express middleware — requires authenticated user
  * @property {Function} requireAdmin   - Express middleware — requires admin role
  * @property {Function} requireTeamAdmin - Express middleware — requires team-admin or admin role
- * @property {Function} requireReleaseManager - Express middleware — requires release-manager role
+ * @property {Function} requireRole    - Factory: requireRole(role) returns Express middleware
  * @property {Function} requireScope   - Factory returning Express middleware for API token scope check
  * @property {object} roleStore        - Role store instance
  * @property {Function} registerDiagnostics - Register a diagnostics function for admin health checks
  * @property {Function} registerMessageProvider - Register a message provider (id, fn)
  * @property {Function} registerRefresh - Register a refresh handler (id, config)
  * @property {Function} registerExport - Register a data export hook (fn)
+ * @property {Function} registerRole - Register a module role (id, config)
+ * @property {Function} registerScopes - Register module scopes (configs[])
  * @property {Function} isRefreshRunning - Check if a global refresh-all is in progress
  */
 
@@ -65,15 +69,31 @@
  */
 function buildModuleContext(coreServices, slug, registries = {}) {
   const { diagnostics, messages, refresh, exports: exportRegistry } = registries
+  const roleRegistry = coreServices.roleRegistry || null
+  const scopeRegistry = coreServices.scopeRegistry || null
 
   const ctx = {
     storage: coreServices.storage,
     requireAuth: coreServices.requireAuth,
     requireAdmin: coreServices.requireAdmin,
     requireTeamAdmin: coreServices.requireTeamAdmin,
-    requireReleaseManager: coreServices.requireReleaseManager,
+    requireRole: coreServices.requireRole,
     requireScope: coreServices.requireScope,
     roleStore: coreServices.roleStore,
+
+    registerRole: roleRegistry
+      ? function (id, config) {
+        roleRegistry.register(id, { ...config, module: slug })
+      }
+      : function () {},
+
+    registerScopes: scopeRegistry
+      ? function (scopeConfigs) {
+        for (const config of scopeConfigs) {
+          scopeRegistry.register(config.key, { ...config, module: slug })
+        }
+      }
+      : function () {},
 
     registerDiagnostics: diagnostics
       ? function (fn) {
@@ -122,7 +142,7 @@ function createTestContext(overrides = {}) {
     requireAuth: noopMiddleware,
     requireAdmin: noopMiddleware,
     requireTeamAdmin: noopMiddleware,
-    requireReleaseManager: noopMiddleware,
+    requireRole: function () { return noopMiddleware },
     requireScope: function () { return noopMiddleware },
     roleStore: {
       getRole: function () { return null },
@@ -134,6 +154,8 @@ function createTestContext(overrides = {}) {
     registerMessageProvider: noop,
     registerRefresh: noop,
     registerExport: noop,
+    registerRole: noop,
+    registerScopes: noop,
     isRefreshRunning: function () { return false }
   }
 

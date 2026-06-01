@@ -22,7 +22,7 @@ module.exports = function registerFieldExceptionRoutes(router, context) {
 
   function filterExceptionsForUser(exceptions, req) {
     if (req.isAdmin || req.isTeamAdmin) return exceptions;
-    if (req.permissionTier === 'user') return [];
+    if (!req.isAdmin && !req.isTeamAdmin && !req.isManager) return [];
 
     // Manager: filter to managed people and purview teams
     const permissions = require('../../../../shared/server/permissions');

@@ -209,9 +209,11 @@ The authoritative typedef for the context object is in `shared/server/module-con
 | `requireAuth` | middleware | Requires authenticated user |
 | `requireAdmin` | middleware | Requires admin role |
 | `requireTeamAdmin` | middleware | Requires team-admin or admin role |
-| `requireReleaseManager` | middleware | Requires release-manager role |
+| `requireRole(role)` | function | Returns middleware requiring a specific role (admins always pass) |
 | `requireScope(name)` | function | Returns middleware for API token scope check |
 | `roleStore` | object | Role store instance |
+| `registerRole(id, config)` | function | Register a module-specific role (e.g., `release-manager`) |
+| `registerScopes(configs)` | function | Register module-specific API token scopes |
 | `registerDiagnostics(fn)` | function | Register diagnostics hook (see below) |
 | `registerMessageProvider(id, fn)` | function | Register message provider (see below) |
 | `registerRefresh(id, config)` | function | Register refresh handler (see below) |
@@ -422,7 +424,7 @@ module.exports = function registerRoutes(router, context) {
   // Register message provider (optional)
   if (context.registerMessageProvider) {
     context.registerMessageProvider('my-module:my-alert', async function(user) {
-      // user = { email, uid, isAdmin, isTeamAdmin, permissionTier }
+      // user = { email, uid, isAdmin, isTeamAdmin, isManager, roles }
 
       // Return empty array if nothing to alert on
       if (!someCondition) return []
@@ -457,7 +459,7 @@ module.exports = function registerRoutes(router, context) {
 - **Per-request execution**: Provider functions are called on every `GET /api/messages` request with the current user context. Keep them fast
 - **Timeout**: Each provider has a 5-second timeout. Providers that exceed this are skipped with a warning
 - **Error isolation**: If a provider throws or times out, other providers still run and the endpoint still returns results
-- **Early bailout**: Check `user.permissionTier` or `user.uid` early to skip expensive work for users who won't see the message
+- **Early bailout**: Check `user.isManager`, `user.isAdmin`, or `user.uid` early to skip expensive work for users who won't see the message
 - **Return an array**: Providers can return zero or more messages. Return `[]` when there is nothing to alert on
 
 ### How It Works

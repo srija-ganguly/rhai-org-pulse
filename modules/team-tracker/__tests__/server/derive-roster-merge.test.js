@@ -119,7 +119,8 @@ function createTestServer(storageData) {
     storage,
     requireAdmin: (_req, _res, next) => next(),
     requireTeamAdmin: (_req, _res, next) => next(),
-    requireScope: () => (_req, _res, next) => next()
+    requireScope: () => (_req, _res, next) => next(),
+    registerScopes: vi.fn()
   })
   app.use(router)
   return app

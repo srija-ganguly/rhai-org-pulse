@@ -30,15 +30,20 @@ export function useAuth() {
   const isAdmin = computed(() => user.value?.isAdmin === true)
   const isTeamAdmin = computed(() => user.value?.isTeamAdmin === true || user.value?.isAdmin === true)
   const roles = computed(() => user.value?.roles || [])
-  const permissionTier = computed(() => user.value?.permissionTier || 'user')
+  const isManager = computed(() => user.value?.isManager === true)
+
+  function hasRole(role) {
+    return roles.value.includes(role)
+  }
 
   return {
     user,
     loading,
     isAdmin,
     isTeamAdmin,
+    isManager,
     roles,
-    permissionTier,
+    hasRole,
     refresh
   }
 }

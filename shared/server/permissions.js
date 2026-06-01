@@ -94,24 +94,6 @@ function isManager(uid, registry) {
 }
 
 /**
- * Determine a user's permission tier.
- * @param {string|null} uid - The user's UID (null if not in registry)
- * @param {{ people: Object }} registry
- * @param {boolean} isAdminFlag - Whether the user is an admin
- * @param {boolean} [isTeamAdminFlag] - Whether the user is a team admin
- * @param {boolean} [isReleaseManagerFlag] - Whether the user is a release manager
- * @returns {'admin'|'team-admin'|'release-manager'|'manager'|'user'}
- */
-function getPermissionTier(uid, registry, isAdminFlag, isTeamAdminFlag, isReleaseManagerFlag) {
-  if (isAdminFlag) return 'admin';
-  if (isTeamAdminFlag) return 'team-admin';
-  if (isReleaseManagerFlag) return 'release-manager';
-  if (!uid) return 'user';
-  if (isManager(uid, registry)) return 'manager';
-  return 'user';
-}
-
-/**
  * Check if an actor can edit a target person.
  * @param {string|null} actorUid
  * @param {string} targetUid
@@ -134,6 +116,5 @@ module.exports = {
   getManagedUids,
   getDirectReports,
   isManager,
-  getPermissionTier,
   canEditPerson
 };
