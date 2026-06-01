@@ -614,7 +614,7 @@ app.post('/api/admin/refresh/:module', requireAdmin, requireScope('admin:manage'
     return res.status(404).json({ error: 'No handlers registered for module "' + slug + '"' });
   }
   refreshRegistry.runModule(slug, { skipCooldown: true }).catch(function(err) {
-    console.error('[refresh-module] runModule error for ' + slug + ':', err.message);
+    console.error('[refresh-module] runModule error for %s:', slug, err.message);
   });
   res.status(202).json({ status: 'started', module: slug });
 });
