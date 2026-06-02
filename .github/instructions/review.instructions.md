@@ -49,7 +49,7 @@ Evaluate the file diff paths. A pull request **requires an integration test** if
 
 - **Module Views:** Structural changes within `modules/*/views/` or `modules/*/components/` that combine multiple data sources, implement multi-step workflows, or render complex interactive UI (charts, tables with filtering/sorting, forms with validation).
 
-- **Module Server Routes:** Any new or modified routes in `modules/*/server/routes.js` that implement non-trivial business logic, data aggregation, or stateful operations.
+- **Module Server Routes:** Any new or modified route files within `modules/*/server/` (e.g., `modules/releases/server/planning/routes.js`, `modules/ai-impact/server/assessments/routes.js`) that implement non-trivial business logic, data aggregation, or stateful operations.
 
 - **Module Server Logic:** Changes to module-specific server files that fetch/transform data from external services (Jira Cloud API, GitHub GraphQL, GitLab GraphQL), implement domain calculations, or orchestrate multi-step operations.
 
@@ -59,7 +59,7 @@ Evaluate the file diff paths. A pull request **requires an integration test** if
 
 2. **Flag Non-Compliance:** If any files within `modules/` were changed but **no matching integration test** is detected in the diff:
    - Generate a critical alert banner in the review output: **`⚠️ Missing Integration Test Warning`**.
-   - Explicitly highlight which module files were modified without verification (e.g., *"You modified data fetching logic inside `modules/releases/server/routes.js` without corresponding integration assertions"* or *"You added a new view in `modules/ai-impact/views/` without integration test coverage"*).
+   - Explicitly highlight which module files were modified without verification (e.g., *"You modified data fetching logic inside `modules/releases/server/planning/routes.js` without corresponding integration assertions"* or *"You added a new view in `modules/ai-impact/views/` without integration test coverage"*).
    - Instruct the developer to add integration test in `tests/integration/<module>.spec.js` that verifies:
      - Module is visible and clickable in sidebar
      - Module views load correctly without errors
