@@ -1,0 +1,92 @@
+# The workflow prevents unauthorized changes to AGENTS.md, CLAUDE.md, and this workflow file itself. It will only
+# pass when an authorized user reviews and approves.
+
+name: Guard AI Configurations
+
+on:
+  pull_request_review:
+    types:
+      - submitted  # Causes the workflow to trigger when an approver approves. (Users don't have to manually trigger.)
+      - dismissed  # This safety mechanism will cause the job to *fail* when an approver's review is dismissed.
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  check-ai-configs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read        # To checkout code
+      pull-requests: write  # To post comments and read reviews
+    env:
+      # Space-separated list of GitHub usernames allowed to approve AI config changes
+      ALLOWED_APPROVERS: "accorvin"
+      # Space-separated list of files requiring owner approval. Keep THIS workflow file in the list so someone can't merge and update this OR the AI configs w/o approval.
+      SENSITIVE_FILES: ".claude/CLAUDE.md AGENTS.md .github/workflows/guard-ai-configs.yml"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if sensitive AI configs or workflows changed
+        id: check_sensitive_files
+        run: |
+          # Check if any sensitive files were modified (without loading all changed files into memory)
+          SENSITIVE_FILES_UPDATED=false
+          MODIFIED_FILES=""
+          for file in $SENSITIVE_FILES; do
+            # git diff --quiet exits with 1 if there are changes, 0 if no changes
+            if ! git diff --quiet origin/${{ github.base_ref }}...origin/${{ github.head_ref }} -- "$file"; then
+              echo "⚠️ Sensitive file detected: $file"
+              SENSITIVE_FILES_UPDATED=true
+              MODIFIED_FILES="${MODIFIED_FILES}- \`${file}\`"$'\n'
+            fi
+          done
+
+          echo "detected=${SENSITIVE_FILES_UPDATED}" >> $GITHUB_OUTPUT
+          if [ "$SENSITIVE_FILES_UPDATED" = true ]; then
+            # Use multiline output syntax for the file list
+            echo "modified_files<<EOF" >> $GITHUB_OUTPUT
+            echo "$MODIFIED_FILES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "⚠️ Sensitive AI configs or CI/CD workflow definitions have been altered, and requires owner approval before merge."
+          fi
+
+      - name: Post PR comment for sensitive files
+        if: steps.check_sensitive_files.outputs.detected == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if we've already commented on this PR to avoid spam
+          COMMENT_EXISTS=$(gh pr view ${{ github.event.pull_request.number }} --json comments -q '.comments[] | select(.author.login=="github-actions") | select(.body | contains("AI Configuration Guard")) | .id' | head -1)
+          if [ -z "$COMMENT_EXISTS" ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **AI Configuration Guard**\n\nThis PR modifies sensitive AI configuration files or workflows that require approval from: **${ALLOWED_APPROVERS}**\n\nThe following sensitive files were detected:\n${{ steps.check_sensitive_files.outputs.modified_files }}\nAn approval from one of the authorized users is required before this PR can be merged."
+          else
+            echo "ℹ️ Comment already exists (ID: $COMMENT_EXISTS), skipping duplicate comment."
+          fi
+
+      - name: Verify Core Owner Approval
+        if: steps.check_sensitive_files.outputs.detected == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use `gh` CLI to see who approved the PR. (This CLI is preinstalled on GitHub ubuntu runners, so this is safe.)
+          REVIEWS=$(gh pr view ${{ github.event.pull_request.number }} --json reviews -q '.reviews[] | select(.state=="APPROVED") | .author.login')
+
+          # Check if any allowed approver has approved
+          APPROVED=false
+          for approver in $ALLOWED_APPROVERS; do
+            if echo "$REVIEWS" | grep -q "$approver"; then
+              echo "✅ Approved by @$approver. This PR can be merged to main."
+              APPROVED=true
+              break
+            fi
+          done
+
+          if [ "$APPROVED" = false ]; then
+            echo "❌ CRITICAL: Modifications to CLAUDE.md, AGENTS.md, or this workflow require a manual review and approval from one of the following users: $ALLOWED_APPROVERS"
+            exit 1
+          fi
