@@ -108,7 +108,10 @@ jobs:
           REVIEWS=$(gh pr view "$PR_NUMBER" --json reviews -q '.reviews[] | select(.state=="APPROVED") | .author.login')
 
           # Get team members from the allowed approver team
-          TEAM_MEMBERS=$(gh api "/orgs/red-hat-data-services/teams/org-pulse-maintainers/members" -q '.[].login')
+          # Convert "org/team-slug" format to API path "/orgs/org/teams/team-slug/members"
+          ORG=$(echo "${ALLOWED_APPROVER_TEAM}" | cut -d'/' -f1)
+          TEAM_SLUG=$(echo "${ALLOWED_APPROVER_TEAM}" | cut -d'/' -f2)
+          TEAM_MEMBERS=$(gh api "/orgs/${ORG}/teams/${TEAM_SLUG}/members" -q '.[].login')
 
           APPROVED=false
           while IFS= read -r approver; do
