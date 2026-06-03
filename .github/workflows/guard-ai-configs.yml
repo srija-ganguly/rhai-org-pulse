@@ -96,7 +96,10 @@ jobs:
           gh api "repos/${REPO}/statuses/${HEAD_SHA}" \
             -f state=success \
             -f context="${STATUS_CONTEXT}" \
-            -f description="No sensitive AI config files changed"
+            -f description="No sensitive AI config files changed" || {
+            echo "Could not set status (expected for fork PRs)"
+            exit 0
+          }
 
       - name: Post PR comment for sensitive files
         if: steps.check_sensitive_files.outputs.detected == 'true'
@@ -113,6 +116,9 @@ jobs:
             echo "Comment already exists (ID: $COMMENT_EXISTS), skipping duplicate."
           fi
 
+      # Generates "APP_TOKEN" to verify the reviewer belongs to the team of approvers:
+      #   * `pull_request` trigger (fork PRs): Secrets unavailable, step fails ("continue-on-error" prevents job failure).
+      #   * `pull_request_review` trigger (after approval): Runs in base repo context, secrets available, step succeeds.
       - name: Generate GitHub App token
         id: app-token
         if: steps.check_sensitive_files.outputs.detected == 'true'
@@ -120,7 +126,7 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-        continue-on-error: true  # Secrets unavailable on fork PRs
+        continue-on-error: true
 
       - name: Check for team approval and set status
         if: steps.check_sensitive_files.outputs.detected == 'true'
@@ -131,16 +137,24 @@ jobs:
           HEAD_SHA: ${{ steps.metadata.outputs.head_sha }}
           REPO: ${{ github.repository }}
         run: |
-          # On fork PRs the app token is unavailable (secrets aren't exposed).
-          # Set a pending status — the check will pass once a team member approves,
-          # which triggers pull_request_review in the base repo context with secrets.
+          # 'APP_TOKEN' will always be empty when both of these are true:
+          #  1) The PR was created from a fork, and
+          #  2) The 'pull_request' trigger is called
+          #
+          # This is because forks CANNOT access secrets loaded into the base repo.
+          #
+          # However, 'APP_TOKEN' will NOT be empty in this situation:
+          #  1) The PR was created from a fork, and
+          #  2) The 'pull_request_review' trigger is called.
+          #
+          # This is because 'pull_request_review' runs in the context of the
+          # base repo, not the fork, so 'pull_request_review' has access to the
+          # base repo's secrets.
           if [ -z "$APP_TOKEN" ]; then
-            echo "App token unavailable (expected for fork PRs)."
-            gh api "repos/${REPO}/statuses/${HEAD_SHA}" \
-              -f state=pending \
-              -f context="${STATUS_CONTEXT}" \
-              -f description="Awaiting approval from ${ALLOWED_APPROVER_TEAM}"
-            exit 0
+            echo "Waiting for approval from a member of ${ALLOWED_APPROVER_TEAM}."
+            echo "(App token unavailable — this is expected for fork PRs.)"
+            echo "A team member's approval will trigger re-evaluation in base repo context."
+            exit 1
           fi
 
           # Use app token to query team membership (requires org members:read)
