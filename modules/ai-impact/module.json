@@ -7,7 +7,7 @@
   "client": {
     "entry": "./client/index.js",
     "navItems": [
-      { "id": "for-you", "label": "For You", "icon": "UserCircle" },
+      { "id": "state-of-the-union", "label": "State of the Union", "icon": "UserCircle" },
       { "id": "ai-factory-guide", "label": "AI Factory Guide", "icon": "BookOpen", "default": true, "separatorBefore": true },
       { "id": "rfe-review", "label": "RFE Review", "icon": "ClipboardList", "separatorBefore": true },
       { "id": "feature-review", "label": "Feature Review", "icon": "Target" },

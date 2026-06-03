@@ -101,7 +101,7 @@ function handleSelectRFE(rfe) {
 
 function handleCloseModal() {
   selectedRFE.value = null
-  const params = fromForYou.value ? { from: 'for-you' } : {}
+  const params = fromForYou.value ? { from: 'state-of-the-union' } : {}
   moduleNav.navigateTo('rfe-review', params)
 }
 
@@ -116,10 +116,10 @@ function handleNavigateToTestPlan(sourceKey) {
   moduleNav.navigateTo('test-plan-review', { select: sourceKey })
 }
 
-const fromForYou = computed(() => moduleNav.params.value?.from === 'for-you')
+const fromForYou = computed(() => moduleNav.params.value?.from === 'state-of-the-union')
 
 function goBackToForYou() {
-  moduleNav.navigateTo('for-you')
+  moduleNav.navigateTo('state-of-the-union')
 }
 
 // Handle incoming select param (cross-link from Feature Review)
@@ -149,7 +149,7 @@ watch([() => moduleNav.params.value, rfeData], ([params]) => {
         @click="goBackToForYou"
         class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
       >
-        &larr; Back to For You
+        &larr; Back to State of the Union
       </button>
     </div>
     <div class="flex flex-1 overflow-hidden">

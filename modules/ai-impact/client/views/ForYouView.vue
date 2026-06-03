@@ -149,9 +149,9 @@ const priorityOptions = [
 
 function handleNavigate(item) {
   if (item.type === 'rfe') {
-    moduleNav.navigateTo('rfe-review', { select: item.key, from: 'for-you' })
+    moduleNav.navigateTo('rfe-review', { select: item.key, from: 'state-of-the-union' })
   } else {
-    navigateToModule('releases', 'feature-detail', { key: item.key, from: 'for-you' })
+    navigateToModule('releases', 'feature-detail', { key: item.key, from: 'state-of-the-union' })
   }
 }
 </script>
@@ -171,7 +171,7 @@ function handleNavigate(item) {
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">For You</h1>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">State of the Union</h1>
           <p v-if="componentSubtitleText" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
             <span v-if="userDisplayName">{{ userDisplayName }} — </span>
             {{ componentSubtitleText }}

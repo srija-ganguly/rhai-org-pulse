@@ -45,7 +45,7 @@ const priorityColors = {
   Minor: 'bg-gray-400 dark:bg-gray-500'
 }
 
-const guideBase = '#/ai-impact/ai-factory-guide?from=for-you&section='
+const guideBase = '#/ai-impact/ai-factory-guide?from=state-of-the-union&section='
 
 const columnGuidance = {
   'not-assessed': {

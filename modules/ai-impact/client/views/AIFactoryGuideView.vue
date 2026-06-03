@@ -94,10 +94,10 @@ function goToPage(phaseId) {
   moduleNav.navigateTo(phaseId)
 }
 
-const fromForYou = computed(() => moduleNav.params.value?.from === 'for-you')
+const fromForYou = computed(() => moduleNav.params.value?.from === 'state-of-the-union')
 
 function goBackToForYou() {
-  moduleNav.navigateTo('for-you')
+  moduleNav.navigateTo('state-of-the-union')
 }
 
 // RFE Review scoring criteria
@@ -318,7 +318,7 @@ function labelColorClasses(color) {
         @click="goBackToForYou"
         class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
       >
-        &larr; Back to For You
+        &larr; Back to State of the Union
       </button>
     </div>
     <div class="flex flex-1 overflow-hidden">

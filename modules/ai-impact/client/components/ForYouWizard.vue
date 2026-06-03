@@ -56,7 +56,7 @@ onUnmounted(() => {
         <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full">
           <!-- Step 1: Mode Selection -->
           <div v-if="step === 1" class="p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Welcome to For You</h2>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Welcome to State of the Union</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
               Get a personalized view of RFEs and features that matter to you. Choose how to select your components.
             </p>

@@ -192,18 +192,18 @@ test.describe('AI Impact Views @ai-impact', () => {
     await testView(page, 'build-release', 'Build & Release');
   });
 
-  test('should load For You view', async ({ page }) => {
-    await testView(page, 'for-you', 'For You');
+  test('should load State of the Union view', async ({ page }) => {
+    await testView(page, 'state-of-the-union', 'State of the Union');
   });
 
-  test('should show wizard on first visit to For You', async ({ page }) => {
+  test('should show wizard on first visit to State of the Union', async ({ page }) => {
     // localStorage is clean in test environment, so wizard should appear
-    await page.goto('/#/ai-impact/for-you');
+    await page.goto('/#/ai-impact/state-of-the-union');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(DEFAULT_PAGE_WAIT_TIME);
 
     // The wizard modal should be visible
-    const wizardText = page.locator('text=Welcome to For You');
+    const wizardText = page.locator('text=Welcome to State of the Union');
     const isVisible = await wizardText.isVisible().catch(() => false);
     // In demo mode the wizard should appear since localStorage is fresh
     if (isVisible) {

@@ -3,7 +3,7 @@ import { defineAsyncComponent } from 'vue'
 const ComingSoonView = defineAsyncComponent(() => import('./components/ComingSoonPlaceholder.vue'))
 
 export const routes = {
-  'for-you': defineAsyncComponent(() => import('./views/ForYouView.vue')),
+  'state-of-the-union': defineAsyncComponent(() => import('./views/ForYouView.vue')),
   'rfe-review': defineAsyncComponent(() => import('./views/RFEReviewView.vue')),
   'feature-review': defineAsyncComponent(() => import('./views/FeatureReviewView.vue')),
   'autofix': defineAsyncComponent(() => import('./views/AutofixView.vue')),

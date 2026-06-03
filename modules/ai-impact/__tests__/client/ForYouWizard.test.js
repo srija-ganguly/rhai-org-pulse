@@ -14,7 +14,7 @@ describe('ForYouWizard', () => {
 
   it('renders Step 1 (mode selection) by default', () => {
     const wrapper = createWrapper()
-    expect(wrapper.text()).toContain('Welcome to For You')
+    expect(wrapper.text()).toContain('Welcome to State of the Union')
     expect(wrapper.text()).toContain('Auto')
     expect(wrapper.text()).toContain('Manual')
   })
@@ -71,7 +71,7 @@ describe('ForYouWizard', () => {
     // Now on Step 2
     const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back'))
     await backBtn.trigger('click')
-    expect(wrapper.text()).toContain('Welcome to For You')
+    expect(wrapper.text()).toContain('Welcome to State of the Union')
   })
 
   it('emits complete with manual mode and selected components from Step 2', async () => {
