@@ -3,8 +3,8 @@ import ForYouMultiSelect from './ForYouMultiSelect.vue'
 
 defineProps({
   boardColumns: { type: Array, default: () => [] },
-  stageFilter: { type: String, default: 'all' },
-  priorityFilter: { type: String, default: 'all' },
+  stageFilter: { type: Array, default: () => [] },
+  priorityFilter: { type: Array, default: () => [] },
   stageOptions: { type: Array, default: () => [] },
   priorityOptions: { type: Array, default: () => [] },
   componentFilter: { type: Array, default: () => [] },
