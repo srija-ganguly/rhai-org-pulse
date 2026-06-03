@@ -284,7 +284,7 @@ describe('boardColumns', () => {
     expect(colMap['ready-to-advance'].items.map(i => i.key)).toEqual(['RFE-3'])
   })
 
-  it('has all 10 columns', () => {
+  it('has all 9 columns', () => {
     const rfeData = ref({ issues: [] })
     const { boardColumns } = useForYou(rosterData, user, rfeData, features, assessments, fieldDefinitions)
     expect(boardColumns.value).toHaveLength(9)
