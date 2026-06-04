@@ -133,17 +133,17 @@ const columnGuidance = {
                   class="absolute top-full pt-1 z-20 hidden group-hover:block w-64"
                   :class="colIdx >= boardColumns.length - 3 ? 'right-0' : 'left-0'"
                 >
-                <div
-                  class="p-3 text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg dark:shadow-gray-900/50"
-                >
-                  <p>{{ columnGuidance[col.id].text }}</p>
-                  <a
-                    :href="guideBase + columnGuidance[col.id].guide"
-                    class="inline-flex items-center gap-0.5 mt-2 font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  >Learn more
-                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                  </a>
-                </div>
+                  <div
+                    class="p-3 text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg dark:shadow-gray-900/50"
+                  >
+                    <p>{{ columnGuidance[col.id].text }}</p>
+                    <a
+                      :href="guideBase + columnGuidance[col.id].guide"
+                      class="inline-flex items-center gap-0.5 mt-2 font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    >Learn more
+                      <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
