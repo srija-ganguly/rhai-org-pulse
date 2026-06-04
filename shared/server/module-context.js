@@ -17,6 +17,7 @@
  * @property {object} roleStore        - Role store instance (getRole, setRole, etc.)
  * @property {object} [roleRegistry]   - Role registry for registerRole
  * @property {object} [scopeRegistry]  - Scope registry for registerScopes
+ * @property {object} [secretRegistry] - Secret registry for module secrets
  */
 
 /**
@@ -26,6 +27,7 @@
  * @property {Function} handler - Async function to execute the refresh
  * @property {Function} [status] - Async function returning current status
  * @property {number} [order=100] - Execution order (lower runs first)
+ * @property {number} [timeout] - Per-handler timeout in ms (overrides global runAll timeout)
  */
 
 /**
@@ -45,6 +47,10 @@
  * @property {Function} registerExport - Register a data export hook (fn)
  * @property {Function} registerRole - Register a module role (id, config)
  * @property {Function} registerScopes - Register module scopes (configs[])
+ * @property {Function} isRefreshRunning - Check if a global refresh-all is in progress
+ * @property {object} secrets - Frozen object of resolved secret values for this module
+ * @property {Function} resolveSecret - Dynamic secret lookup: resolveSecret(envVarName) => string|undefined. Warning: v1 does not enforce module isolation — any module can resolve any env var. Logs a warning for undeclared access.
+ * @property {Function} registerSecretValidator - Register an async validator for a secret key
  */
 
 /**
@@ -69,6 +75,7 @@ function buildModuleContext(coreServices, slug, registries = {}) {
   const { diagnostics, messages, refresh, exports: exportRegistry } = registries
   const roleRegistry = coreServices.roleRegistry || null
   const scopeRegistry = coreServices.scopeRegistry || null
+  const secretRegistry = coreServices.secretRegistry || null
 
   const ctx = {
     storage: coreServices.storage,
@@ -110,6 +117,27 @@ function buildModuleContext(coreServices, slug, registries = {}) {
 
     registerExport: exportRegistry
       ? function (fn) { exportRegistry.register(slug, fn) }
+      : function () {},
+
+    isRefreshRunning: refresh
+      ? function () { return refresh.isRunning() }
+      : function () { return false },
+
+    secrets: secretRegistry
+      ? secretRegistry.getModuleSecrets(slug)
+      : Object.freeze({}),
+
+    /**
+     * Dynamic secret lookup. Reads process.env at call time.
+     * Logs a warning if the key is outside this module's declarations (v1 limitation:
+     * does not block access, only warns — Phase 2 will add pattern-based enforcement).
+     */
+    resolveSecret: secretRegistry
+      ? function (envVarName) { return secretRegistry.resolveSecret(envVarName, slug) }
+      : function () { return undefined },
+
+    registerSecretValidator: secretRegistry
+      ? function (key, fn) { secretRegistry.registerValidator(key, fn) }
       : function () {}
   }
 
@@ -149,7 +177,11 @@ function createTestContext(overrides = {}) {
     registerRefresh: noop,
     registerExport: noop,
     registerRole: noop,
-    registerScopes: noop
+    registerScopes: noop,
+    isRefreshRunning: function () { return false },
+    secrets: {},
+    resolveSecret: function () { return undefined },
+    registerSecretValidator: noop
   }
 
   return { ...defaults, ...overrides }
