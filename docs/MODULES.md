@@ -309,7 +309,7 @@ Disabling a module hides it from the UI immediately but its server routes remain
 
 ### CronJob behavior
 
-The daily CronJob (`deploy/openshift/overlays/prod/cronjob-sync-refresh.yaml`) calls the People & Teams module's API endpoints directly. If People & Teams is disabled, those endpoints will return 404 and the CronJob will fail silently. Re-enable People & Teams and restart to restore automatic syncs.
+The daily CronJob (`deploy/openshift/base/cronjob-sync-refresh.yaml`) calls the People & Teams module's API endpoints directly. If People & Teams is disabled, those endpoints will return 404 and the CronJob will fail silently. Re-enable People & Teams and restart to restore automatic syncs.
 
 ## Export Hook
 

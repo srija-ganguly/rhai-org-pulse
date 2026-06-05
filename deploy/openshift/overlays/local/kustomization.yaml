@@ -29,9 +29,9 @@ patches:
     path: frontend-service-patch.yaml
 
 images:
-  - name: quay.io/org-pulse/team-tracker-backend
+  - name: quay.io/org-pulse/org-pulse-core-backend
     newName: localhost/team-tracker-backend
     newTag: local
-  - name: quay.io/org-pulse/team-tracker-frontend
+  - name: quay.io/org-pulse/org-pulse-core-frontend
     newName: localhost/team-tracker-frontend
     newTag: local

@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: quay.io/org-pulse/team-tracker-backend:latest
+          image: quay.io/org-pulse/org-pulse-core-backend:latest
           ports:
             - containerPort: 3001
               protocol: TCP
@@ -29,16 +29,19 @@ spec:
             - configMapRef:
                 name: team-tracker-config
           env:
+            # Platform secrets — used by core team-tracker module
             - name: JIRA_EMAIL
               valueFrom:
                 secretKeyRef:
                   name: team-tracker-secrets
                   key: JIRA_EMAIL
+                  optional: true
             - name: JIRA_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: team-tracker-secrets
                   key: JIRA_TOKEN
+                  optional: true
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -51,36 +54,13 @@ spec:
                   name: team-tracker-secrets
                   key: GITLAB_TOKEN
                   optional: true
-            - name: PRODUCT_PAGES_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: team-tracker-secrets
-                  key: PRODUCT_PAGES_CLIENT_ID
-                  optional: true
-            - name: PRODUCT_PAGES_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: team-tracker-secrets
-                  key: PRODUCT_PAGES_CLIENT_SECRET
-                  optional: true
-            - name: FEATURE_TRAFFIC_GITLAB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: team-tracker-secrets
-                  key: FEATURE_TRAFFIC_GITLAB_TOKEN
-                  optional: true
-            - name: GITLAB_CEE_REDHAT_DOCS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: team-tracker-secrets
-                  key: GITLAB_CEE_REDHAT_DOCS_TOKEN
-                  optional: true
             - name: PROXY_AUTH_SECRET
               valueFrom:
                 secretKeyRef:
                   name: proxy-auth-secret
                   key: secret
                   optional: true
+            # Roster sync secrets (optional — sync won't run without them)
             - name: IPA_BIND_DN
               valueFrom:
                 secretKeyRef:
@@ -92,30 +72,6 @@ spec:
                 secretKeyRef:
                   name: ipa-credentials
                   key: IPA_BIND_PASSWORD
-                  optional: true
-            - name: SMARTSHEET_API_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: team-tracker-secrets
-                  key: SMARTSHEET_API_TOKEN
-                  optional: true
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-backup-credentials
-                  key: AWS_ACCESS_KEY_ID
-                  optional: true
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-backup-credentials
-                  key: AWS_SECRET_ACCESS_KEY
-                  optional: true
-            - name: AWS_BACKUP_BUCKET
-              valueFrom:
-                secretKeyRef:
-                  name: aws-backup-credentials
-                  key: AWS_BACKUP_BUCKET
                   optional: true
           volumeMounts:
             - name: data
@@ -149,3 +105,4 @@ spec:
         - name: google-sa-key
           secret:
             secretName: google-sa-key
+            optional: true

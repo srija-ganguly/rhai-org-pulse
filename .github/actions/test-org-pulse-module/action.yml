@@ -9,13 +9,19 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Build backend image
+    - name: Build core base images (needed for AI Eng FROM)
+      shell: bash
+      run: make build-core-base-images
+      env:
+        CONTAINER_RUNTIME: docker
+
+    - name: Build AI Eng backend image
       shell: bash
       run: make build-backend-image
       env:
         CONTAINER_RUNTIME: docker
 
-    - name: Build frontend image
+    - name: Build AI Eng frontend image
       shell: bash
       run: make build-frontend-image
       env:

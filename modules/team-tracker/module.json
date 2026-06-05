@@ -23,13 +23,7 @@
   "requires": [],
   "secrets": {
     "platform": ["jira", "github", "gitlab", "ipa", "google"],
-    "module": [
-      {
-        "key": "GITLAB_CEE_REDHAT_DOCS_TOKEN",
-        "description": "GitLab token for internal docs instance",
-        "required": false
-      }
-    ],
+    "module": [],
     "dynamic": {
       "pattern": "GITLAB_*_TOKEN",
       "description": "Per-instance GitLab tokens configured via Settings UI (gitlabInstances)"

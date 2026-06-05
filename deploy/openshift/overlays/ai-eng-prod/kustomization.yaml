@@ -4,8 +4,7 @@ kind: Kustomization
 namespace: ambient-code--team-tracker
 
 resources:
-- ../../base
-- cronjob-sync-refresh.yaml
+- ../ai-eng
 
 configMapGenerator:
 - behavior: merge

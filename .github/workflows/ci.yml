@@ -90,8 +90,8 @@ jobs:
             kustomize build "$overlay" > /dev/null
           done
 
-  smoke-test:
-    name: Smoke Tests
+  smoke-test-core:
+    name: Core Smoke Tests
     runs-on: ubuntu-latest
     needs: test
     if: needs.test.outputs.app == 'true'
@@ -104,11 +104,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build backend image
-        run: make build-backend-image
+      - name: Build core backend image
+        run: make build-core-backend-image
 
-      - name: Build frontend image
-        run: make build-frontend-image
+      - name: Build core frontend image
+        run: make build-core-frontend-image
 
-      - name: Run smoke tests
+      - name: Run core smoke tests
+        run: make smoke-test-core
+
+  smoke-test-ai-eng:
+    name: AI Eng Smoke Tests
+    runs-on: ubuntu-latest
+    needs: test
+    if: needs.test.outputs.app == 'true'
+    permissions:
+      contents: read
+    env:
+      CONTAINER_RUNTIME: docker
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build core base images (needed for AI Eng FROM)
+        run: make build-core-base-images
+
+      - name: Build AI Eng images
+        run: |
+          make build-backend-image
+          make build-frontend-image
+
+      - name: Run AI Eng smoke tests
         run: make smoke-test

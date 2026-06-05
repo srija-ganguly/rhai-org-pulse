@@ -31,8 +31,8 @@ Build the container images locally and load them into Kind (Kind can't pull from
 
 ```bash
 # Build images
-podman build -f deploy/backend.Dockerfile -t localhost/team-tracker-backend:local .
-podman build -f deploy/frontend.Dockerfile -t localhost/team-tracker-frontend:local .
+podman build -f deploy/core.backend.Dockerfile -t localhost/team-tracker-backend:local .
+podman build -f deploy/core.frontend.Dockerfile -t localhost/team-tracker-frontend:local .
 
 # Load into Kind
 kind load docker-image localhost/team-tracker-backend:local --name team-tracker
@@ -98,12 +98,12 @@ After modifying code, rebuild the affected image(s), reload into Kind, and resta
 
 ```bash
 # Example: rebuild backend
-podman build -f deploy/backend.Dockerfile -t localhost/team-tracker-backend:local .
+podman build -f deploy/core.backend.Dockerfile -t localhost/team-tracker-backend:local .
 kind load docker-image localhost/team-tracker-backend:local --name team-tracker
 kubectl rollout restart deployment/backend -n team-tracker
 
 # Example: rebuild frontend
-podman build -f deploy/frontend.Dockerfile -t localhost/team-tracker-frontend:local .
+podman build -f deploy/core.frontend.Dockerfile -t localhost/team-tracker-frontend:local .
 kind load docker-image localhost/team-tracker-frontend:local --name team-tracker
 kubectl rollout restart deployment/frontend -n team-tracker
 ```

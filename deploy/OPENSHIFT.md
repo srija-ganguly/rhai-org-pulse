@@ -83,12 +83,10 @@ npm run build
 
 # Create a minimal Dockerfile for the pre-built assets
 cat > /tmp/frontend-amd64.Dockerfile <<'EOF'
-FROM registry.access.redhat.com/ubi9/nginx-124
-COPY deploy/nginx.conf /opt/app-root/etc/nginx.default.d/app.conf
-COPY dist/ /opt/app-root/src/
-USER 1001
+FROM registry.access.redhat.com/hi/nginx:latest
+COPY deploy/nginx-default.conf /etc/nginx/conf.d/default.conf
+COPY dist/ /usr/share/nginx/html
 EXPOSE 8080
-CMD ["/usr/libexec/s2i/run"]
 EOF
 
 # Build using a temp context (dist/ is in .dockerignore)
@@ -139,8 +137,8 @@ rm -rf "$TMPDIR"
 Build directly with the standard Dockerfiles:
 
 ```bash
-podman build -t quay.io/org-pulse/team-tracker-backend:latest -f deploy/backend.Dockerfile .
-podman build -t quay.io/org-pulse/team-tracker-frontend:latest -f deploy/frontend.Dockerfile .
+podman build -t quay.io/org-pulse/team-tracker-backend:latest -f deploy/ai-eng.backend.Dockerfile .
+podman build -t quay.io/org-pulse/team-tracker-frontend:latest -f deploy/ai-eng.frontend.Dockerfile .
 ```
 
 ## 4. Push images
@@ -156,10 +154,10 @@ Ensure the repositories are public on quay.io, or configure image pull secrets o
 
 ```bash
 # Dev cluster
-oc apply -k deploy/openshift/overlays/dev/
+oc apply -k deploy/openshift/overlays/ai-eng-dev/
 
 # Prod cluster
-oc apply -k deploy/openshift/overlays/prod/
+oc apply -k deploy/openshift/overlays/ai-eng-prod/
 ```
 
 Verify pods are running:
@@ -174,7 +172,7 @@ oc get route team-tracker -n team-tracker -o jsonpath='{.spec.host}'
 
 ## Dev vs prod overlays
 
-| Aspect | Dev (`overlays/dev/`) | Preprod (`overlays/preprod/`) | Prod (`overlays/prod/`) |
+| Aspect | Dev (`overlays/ai-eng-dev/`) | Preprod (`overlays/ai-eng-preprod/`) | Prod (`overlays/ai-eng-prod/`) |
 |--------|----------------------|------------------------------|------------------------|
 | Namespace | `team-tracker` | `ambient-code--team-tracker` | `ambient-code--team-tracker` |
 | `ADMIN_EMAILS` | Unset (first user auto-added to allowlist) | Inherits from base | Set to admin email (pre-seeds allowlist) |

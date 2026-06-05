@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: team-tracker
 
 resources:
-  - ../../base
+  - ../ai-eng
 
 patches:
   - path: route-patch.yaml

@@ -123,17 +123,19 @@ For testing the containerized deployment locally, see `deploy/KIND.md`. The `dep
 
 Deployed to OpenShift via ArgoCD. Full guide: `deploy/OPENSHIFT.md`.
 
-| Component | Image |
-|-----------|-------|
-| Frontend | `quay.io/org-pulse/team-tracker-frontend` (nginx + Vue SPA) |
-| Backend | `quay.io/org-pulse/team-tracker-backend` (Express + PVC data) |
-| OAuth Proxy | `quay.io/openshift/origin-oauth-proxy:4.16` (sidecar) |
+| Component | Core Image | AI Eng Image |
+|-----------|-----------|--------------|
+| Backend | `quay.io/org-pulse/org-pulse-core-backend` | `quay.io/org-pulse/team-tracker-backend` (extends core) |
+| Frontend | `quay.io/org-pulse/org-pulse-core-frontend` | `quay.io/org-pulse/team-tracker-frontend` (extends core) |
+| Frontend Builder | `quay.io/org-pulse/org-pulse-core-frontend-builder` | — (used as build stage) |
+| Frontend Runtime | `quay.io/org-pulse/org-pulse-core-frontend-runtime` | — (used as runtime stage) |
+| OAuth Proxy | `quay.io/openshift/origin-oauth-proxy:4.16` (sidecar) | same |
 
-Overlays: `dev/` (team-tracker ns), `preprod/` (ambient-code--team-tracker ns), `prod/`.
+Kustomize layers: `base/` (core platform + team-tracker) → `overlays/ai-eng/` (AI Eng modules + secrets) → `overlays/ai-eng-{dev,preprod,prod}/` (environment-specific). The `overlays/local/` overlay uses core images for Kind testing.
 
 ### CI/CD
 - **`ci.yml`** — PRs + main: lint, test, build, kustomize validate. Required check: "Test & Build".
-- **`build-images.yml`** — main pushes: detect changed components, build/push to Quay (`:<sha>` + `:latest`), create PR to update prod image tags, auto-merge.
+- **`build-images.yml`** — main pushes: builds core images first (backend, frontend, frontend-builder, frontend-runtime), then AI Eng images FROM core, runs smoke tests, pushes to Quay (`:<sha>` + `:latest`), creates PR to update prod image tags, auto-merges.
 - ConfigMap changes auto-trigger rollouts via kustomize `configMapGenerator` — ConfigMap names include a content hash suffix (e.g., `team-tracker-config-5h2f9k`), so any data change produces a new name and triggers a pod rollout automatically.
 
 **Branch protection** uses a GitHub repository ruleset on `main`:
@@ -146,7 +148,7 @@ Overlays: `dev/` (team-tracker ns), `preprod/` (ambient-code--team-tracker ns), 
 - `GH_PAT` — Personal access token with admin bypass, used by CI to create and auto-merge image tag update PRs
 - `GCP_SA_KEY` — GCP service account JSON key for Vertex AI auth (Claude code review)
 
-**Daily CronJob** (`deploy/openshift/overlays/prod/cronjob-sync-refresh.yaml`): Runs at 6:00 AM UTC, triggers roster sync then full metrics refresh via the backend API.
+**Daily CronJob** (`deploy/openshift/base/cronjob-sync-refresh.yaml`): Runs at 6:00 AM UTC, triggers roster sync then full metrics refresh via the backend API. Uses `CRON_ADMIN_EMAIL` from ConfigMap. S3 backup step is conditional on `AWS_BACKUP_BUCKET`.
 
 ### Testing
 
@@ -155,9 +157,13 @@ Overlays: `dev/` (team-tracker ns), `preprod/` (ambient-code--team-tracker ns), 
 **Smoke tests** use Playwright to verify the production container images. Located in `tests/smoke/app-loads.spec.js`. These run automatically in CI after images are built and can also be run locally:
 
 ```bash
-make build-frontend-image  # Build frontend container
-make build-backend-image   # Build backend container
-make smoke-test            # Run Playwright smoke tests (uses demo mode)
+make build-core-frontend-image  # Build core frontend image (team-tracker only)
+make build-core-backend-image   # Build core backend image (team-tracker only)
+make smoke-test-core            # Run smoke tests against core images
+
+make build-frontend-image       # Build AI Eng frontend image (all modules)
+make build-backend-image        # Build AI Eng backend image (all modules)
+make smoke-test                 # Run smoke tests against AI Eng images
 ```
 
 Smoke tests verify:
@@ -172,9 +178,10 @@ Playwright runs in a container (`mcr.microsoft.com/playwright:v1.60.0`), so no l
 **IMPORTANT:** The Playwright version must match between `package.json` (`@playwright/test`) and `Makefile` (`PLAYWRIGHT_IMAGE`). When updating Playwright, change both files to the same version to prevent browser binary mismatches.
 
 CI workflow (`build-images.yml`):
-1. Builds frontend and backend images via `make build-frontend-image` and `make build-backend-image`
-2. Runs `make smoke-test FRONTEND_IMAGE=<image>:<sha> BACKEND_IMAGE=<image>:<sha>` against the built images
-3. Uploads images to Quay if tests pass
+1. Builds core images (backend, frontend, frontend-builder, frontend-runtime) with smoke test
+2. Builds AI Eng images FROM core (backend extends core-backend, frontend uses core-builder + core-runtime)
+3. Runs Playwright smoke tests against AI Eng images
+4. Pushes all images to Quay, creates PR to update prod image tags
 
 **Integration tests** use Playwright to verify module-specific functionality against production containers in demo mode. Located in `tests/integration/<module>.spec.js`:
 
@@ -207,8 +214,10 @@ To add integration tests for a new module:
 Standard `--platform linux/amd64` builds fail: npm times out under QEMU, esbuild crashes. Workaround: build/install natively, then copy into amd64 base images. See `deploy/OPENSHIFT.md` step 3 for details. This works because the backend has no native Node addons (all pure JS).
 
 ### Dev vs prod
-- **Dev overlay** clears `ADMIN_EMAILS` via `configMapGenerator` merge behavior. When empty, the first authenticated user is auto-added to the role store.
-- **Prod overlay** keeps `ADMIN_EMAILS` to pre-seed the role store with known admins.
+- **Base** sets `ADMIN_EMAILS=` (empty) and `CRON_ADMIN_EMAIL=`.
+- **AI Eng overlay** sets `ADMIN_EMAILS` and `CRON_ADMIN_EMAIL` to real values, adds AI Eng secrets to the backend deployment via strategic merge patch.
+- **AI Eng Dev overlay** clears `ADMIN_EMAILS` via `configMapGenerator` merge behavior. When empty, the first authenticated user is auto-added to the role store.
+- **AI Eng Prod overlay** keeps `ADMIN_EMAILS` from the AI Eng overlay to pre-seed the role store with known admins.
 
 ### Auth Flow (production)
 OAuth proxy (sidecar on frontend pod) authenticates users and sets `X-Forwarded-Email` / `X-Forwarded-User` headers. Backend reads `X-Forwarded-Email` and checks against `data/roles.json` via role-store. Empty role store → first user auto-added.

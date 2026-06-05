@@ -107,7 +107,8 @@ npm run validate:modules      # Validate module manifests
 npm run validate:openapi      # Validate OpenAPI annotations
 
 # Container-based tests (requires Docker/Podman)
-make smoke-test               # Run smoke tests against containers
+make smoke-test-core            # Run smoke tests against core images
+make smoke-test                 # Run smoke tests against AI Eng images
 make test-module MODULE=<name>  # Run integration tests for a module
 ```
 

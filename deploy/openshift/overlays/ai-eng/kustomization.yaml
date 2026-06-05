@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# AI Engineering shared configuration — extends the core base with
+# AI Eng-specific secrets and module images. Environment overlays
+# (ai-eng-dev, ai-eng-preprod, ai-eng-prod) extend this.
+
+resources:
+  - ../../base
+
+patches:
+  - path: backend-secrets-patch.yaml
+
+configMapGenerator:
+  - name: team-tracker-config
+    behavior: merge
+    literals:
+      - ADMIN_EMAILS=acorvin@redhat.com,acorvin@cluster.local,jalberts@redhat.com
+      - CRON_ADMIN_EMAIL=acorvin@redhat.com
+
+# Override core images with AI Eng full images
+images:
+  - name: quay.io/org-pulse/org-pulse-core-backend
+    newName: quay.io/org-pulse/team-tracker-backend
+    newTag: latest
+  - name: quay.io/org-pulse/org-pulse-core-frontend
+    newName: quay.io/org-pulse/team-tracker-frontend
+    newTag: latest

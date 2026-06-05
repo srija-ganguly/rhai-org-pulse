@@ -9,11 +9,15 @@
   path: /spec/template/spec/containers
   value:
     - name: nginx
-      image: quay.io/org-pulse/team-tracker-frontend:latest
+      image: quay.io/org-pulse/org-pulse-core-frontend:latest
       imagePullPolicy: Never
       ports:
         - containerPort: 8080
           protocol: TCP
+      volumeMounts:
+        - name: rendered-config
+          mountPath: /etc/nginx/conf.d
+          readOnly: true
       readinessProbe:
         httpGet:
           path: /healthz
@@ -33,7 +37,12 @@
         limits:
           memory: "64Mi"
           cpu: "50m"
-# Remove OAuth proxy volumes
+# Remove OAuth proxy volumes, keep config volumes
 - op: replace
   path: /spec/template/spec/volumes
-  value: []
+  value:
+    - name: config-template
+      configMap:
+        name: nginx-config-template
+    - name: rendered-config
+      emptyDir: {}

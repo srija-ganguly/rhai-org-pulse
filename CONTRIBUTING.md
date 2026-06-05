@@ -91,13 +91,20 @@ server/
     constants.js      # Shared constants
 
 deploy/
-  backend.Dockerfile    # Backend container image
-  frontend.Dockerfile   # Frontend image (multi-stage Vite build -> nginx)
-  nginx.conf            # nginx config for SPA + API proxy
+  core.backend.Dockerfile       # Core backend image (platform + team-tracker)
+  core.frontend.Dockerfile      # Core frontend image (complete, core-only)
+  core.frontend-builder.Dockerfile  # Core frontend build stage (for orgs adding modules)
+  core.frontend-runtime.Dockerfile  # Core frontend nginx runtime
+  ai-eng.backend.Dockerfile     # AI Eng backend (extends core + all modules)
+  ai-eng.frontend.Dockerfile    # AI Eng frontend (extends core + all modules)
+  nginx-default.conf    # nginx config for container/smoke-test SPA + API proxy
   openshift/
     base/               # Kustomize base manifests
-    overlays/dev/       # Dev cluster overlay
-    overlays/prod/      # Prod cluster overlay
+    overlays/ai-eng/    # AI Engineering shared overlay
+    overlays/ai-eng-dev/    # AI Eng dev cluster overlay
+    overlays/ai-eng-preprod/ # AI Eng preprod overlay
+    overlays/ai-eng-prod/   # AI Eng prod overlay
+    overlays/local/     # Local Kind cluster overlay
 
 fixtures/             # Demo mode fixture data
 data/                 # Local dev data (gitignored)
@@ -159,9 +166,13 @@ Smoke tests use **Playwright** to verify the production container images work co
 **Note:** First-time image pulls can take a while (~5-10 minutes)
 
 ```bash
-make build-backend-image   # Builds an image with the backend sources (required for frontend tests)
-make build-frontend-image  # Builds an image with the frontend sources
-make smoke-test            # Run smoke tests against both containers (uses demo mode)
+make build-core-backend-image   # Build core backend image (team-tracker only)
+make build-core-frontend-image  # Build core frontend image (team-tracker only)
+make smoke-test-core            # Run smoke tests against core images
+
+make build-backend-image   # Build AI Eng backend image (all modules)
+make build-frontend-image  # Build AI Eng frontend image (all modules)
+make smoke-test            # Run smoke tests against AI Eng images
 ```
 
 Smoke tests run Playwright in a container, so no local browser installation is needed. The backend runs in demo mode (using fixture data) so no credentials are required.

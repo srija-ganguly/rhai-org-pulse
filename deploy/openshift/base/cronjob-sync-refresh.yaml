@@ -24,6 +24,9 @@ spec:
           containers:
             - name: sync-refresh
               image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+              envFrom:
+                - configMapRef:
+                    name: team-tracker-config
               env:
                 - name: PROXY_AUTH_SECRET
                   valueFrom:
@@ -31,13 +34,19 @@ spec:
                       name: proxy-auth-secret
                       key: secret
                       optional: true
+                - name: AWS_BACKUP_BUCKET
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-backup-credentials
+                      key: AWS_BACKUP_BUCKET
+                      optional: true
               command:
                 - /bin/sh
                 - -c
                 - |
                   set -e
                   BACKEND="http://backend:3001"
-                  AUTH_HEADER="X-Forwarded-Email: acorvin@redhat.com"
+                  AUTH_HEADER="X-Forwarded-Email: ${CRON_ADMIN_EMAIL}"
                   PROXY_SECRET_HEADER="X-Proxy-Secret: ${PROXY_AUTH_SECRET}"
 
                   # Step 0: Trigger module content sync (git-static modules)
@@ -86,12 +95,16 @@ spec:
                     exit 1
                   fi
 
-                  # Step 2: Trigger data backup to S3
-                  echo "=== Triggering data backup ==="
-                  BACKUP_RESP=$(curl -sf -X POST "$BACKEND/api/admin/backup" \
-                    -H "$AUTH_HEADER" -H "$PROXY_SECRET_HEADER" -H "Content-Type: application/json" \
-                    --max-time 120) || echo "WARNING: Backup failed (non-fatal)"
-                  echo "Backup response: $BACKUP_RESP"
+                  # Step 2: Trigger data backup (only if AWS_BACKUP_BUCKET is configured)
+                  if [ -n "${AWS_BACKUP_BUCKET}" ]; then
+                    echo "=== Triggering data backup ==="
+                    BACKUP_RESP=$(curl -sf -X POST "$BACKEND/api/admin/backup" \
+                      -H "$AUTH_HEADER" -H "$PROXY_SECRET_HEADER" -H "Content-Type: application/json" \
+                      --max-time 120) || echo "WARNING: Backup failed (non-fatal)"
+                    echo "Backup response: $BACKUP_RESP"
+                  else
+                    echo "=== Skipping backup (AWS_BACKUP_BUCKET not configured) ==="
+                  fi
 
                   echo "=== Sync and refresh completed successfully ==="
               resources:
