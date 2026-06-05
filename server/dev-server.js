@@ -351,6 +351,10 @@ app.use(authMiddleware);
  *                   type: string
  *                   format: email
  *                   description: The real admin's email (only present during impersonation)
+ *                 apiBaseUrl:
+ *                   type: string
+ *                   nullable: true
+ *                   description: Dedicated API server URL for token-authenticated requests (null if not configured)
  */
 app.get('/api/whoami', function(req, res) {
   // For proxy-authenticated users, try to get display name from headers
@@ -369,7 +373,8 @@ app.get('/api/whoami', function(req, res) {
     isTeamAdmin: req.isTeamAdmin || false,
     isManager: req.isManager || false,
     roles: req.userRoles || [],
-    authMethod: req.authMethod || (req.headers['x-forwarded-email'] ? 'proxy' : 'local-dev')
+    authMethod: req.authMethod || (req.headers['x-forwarded-email'] ? 'proxy' : 'local-dev'),
+    apiBaseUrl: process.env.API_PUBLIC_URL || null
   };
 
   if (req.isImpersonating) {
