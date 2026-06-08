@@ -26,9 +26,32 @@ on:
       - opened
       - synchronize
       - reopened
+  merge_group:
 
 jobs:
+  # Merge queue no-op: the real guard check already ran on the PR. The queue
+  # just needs the "AI Config Guard" commit status to exist and pass.
+  merge-queue-pass:
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    env:
+      STATUS_CONTEXT: "AI Config Guard"
+    steps:
+      - name: Set success status for merge queue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/${REPO}/statuses/${HEAD_SHA}" \
+            -f state=success \
+            -f context="${STATUS_CONTEXT}" \
+            -f description="Merge queue — already verified on PR"
+
   check-ai-configs:
+    if: github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write  # To post comments and read reviews

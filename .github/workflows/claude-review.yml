@@ -10,6 +10,7 @@ on:
     types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
+  merge_group:
   workflow_dispatch:
 
 concurrency:
@@ -23,11 +24,21 @@ permissions:
   id-token: write
 
 jobs:
+  # Merge queue no-op: the real review already ran on the PR. The queue just
+  # needs the "Claude Review" check name to exist and pass.
+  merge-queue-pass:
+    name: Claude Review
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Merge queue — skipping review (already passed on PR)"
+
   claude-review:
     name: Claude Review
     timeout-minutes: 20
     if: |
-      (github.event_name == 'pull_request' &&
+      github.event_name != 'merge_group' &&
+      ((github.event_name == 'pull_request' &&
        github.event.pull_request.head.repo.full_name == github.repository &&
        github.event.pull_request.draft != true &&
        github.actor != 'github-actions[bot]' &&
@@ -42,7 +53,7 @@ jobs:
        github.event.comment.author_association != 'NONE' &&
        github.event.comment.author_association != 'FIRST_TIMER' &&
        github.event.comment.author_association != 'FIRST_TIME_CONTRIBUTOR') ||
-      (github.event_name == 'workflow_dispatch')
+      (github.event_name == 'workflow_dispatch'))
     runs-on: ubuntu-latest
     steps:
       - name: Determine review context
