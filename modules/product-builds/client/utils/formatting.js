@@ -104,3 +104,41 @@ export function getAcceleratorInfo(art) {
     baseImage: labels['com.redhat.aiplatform.image'] || null
   }
 }
+
+export function getRegistryUrl(key) {
+  if (!key) return null
+  if (key.startsWith('quay.io/')) {
+    const path = key.replace('quay.io/', '').split(':')[0]
+    return `https://quay.io/repository/${path}?tab=tags`
+  }
+  if (key.startsWith('registry.redhat.io/')) {
+    const path = key.replace('registry.redhat.io/', '').split(':')[0]
+    return `https://catalog.redhat.com/en/search?searchType=All&q=${encodeURIComponent(path)}&p=1`
+  }
+  return null
+}
+
+export function getQuayDirectTagUrl(key) {
+  if (!key || !key.startsWith('quay.io/')) return null
+  const withoutRegistry = key.replace('quay.io/', '')
+  const [path, tag] = withoutRegistry.split(':')
+  if (!tag) return null
+  return `https://quay.io/repository/${path}/tag/${tag}`
+}
+
+export function getQuayAllTagsUrl(key) {
+  if (!key || !key.startsWith('quay.io/')) return null
+  const withoutRegistry = key.replace('quay.io/', '')
+  const [path, tag] = withoutRegistry.split(':')
+  const url = `https://quay.io/repository/${path}?tab=tags`
+  return tag ? `${url}&tag=${tag}` : url
+}
+
+export function getDigestUrl(art) {
+  if (!art?.sha_digest || !art?.key) return null
+  if (art.key.startsWith('quay.io/')) {
+    const path = art.key.replace('quay.io/', '').split(':')[0]
+    return `https://quay.io/repository/${path}/manifest/${art.sha_digest}`
+  }
+  return getRegistryUrl(art.key)
+}
