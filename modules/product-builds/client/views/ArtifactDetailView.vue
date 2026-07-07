@@ -177,7 +177,7 @@ const prodKey = computed(() => {
 const allNames = computed(() => {
   const names = artifact.value?.alternative_names || []
   if (prodKey.value) {
-    return [artifact.value.key, ...names]
+    return [artifact.value.key, ...names.filter(n => n !== prodKey.value)]
   }
   return names
 })
