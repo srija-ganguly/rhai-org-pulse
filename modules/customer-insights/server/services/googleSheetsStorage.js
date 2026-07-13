@@ -1,5 +1,6 @@
 const { getSheetsApi, readSheet, appendRows, updateRow, deleteRow, clearAndWrite, ensureHeaders } = require('./sheetsClient')
 const { getCached, setCache, invalidate } = require('./sheetsCache')
+const { getConfig } = require('../sheet-config')
 const crypto = require('crypto')
 
 // Simple UUID v4 generator
@@ -34,6 +35,8 @@ const HEADERS = [
 ]
 
 const ARRAY_FIELDS = new Set(['toolsOfChoice', 'futureWishlist'])
+
+const LAST_COL = String.fromCharCode(64 + HEADERS.length)
 
 /**
  * Serialize an interaction object to a spreadsheet row
@@ -78,7 +81,7 @@ async function getAllFromSheet(sheets, spreadsheetId) {
   if (cached) return cached
 
   await ensureHeaders(sheets, spreadsheetId, SHEET_NAME, HEADERS)
-  const rows = await readSheet(sheets, spreadsheetId, `${SHEET_NAME}!A2:T`)
+  const rows = await readSheet(sheets, spreadsheetId, `${SHEET_NAME}!A2:${LAST_COL}`)
   const data = rows.map(deserializeRow)
 
   setCache(CACHE_KEY, data)
@@ -91,9 +94,10 @@ async function getAllFromSheet(sheets, spreadsheetId) {
  * @returns {object} Storage instance with CRUD methods
  */
 function createStorage(context) {
-  const spreadsheetId = context.secrets.GOOGLE_SPREADSHEET_ID
+  const configSheetId = getConfig(context.storage.readFromStorage).sheetId
+  const spreadsheetId = configSheetId || context.secrets.GOOGLE_SPREADSHEET_ID
   if (!spreadsheetId) {
-    throw new Error('GOOGLE_SPREADSHEET_ID not configured in module secrets')
+    throw new Error('Google Spreadsheet ID not configured — set it in Settings or via GOOGLE_SPREADSHEET_ID secret')
   }
 
   const keyFile = context.resolveSecret('GOOGLE_SERVICE_ACCOUNT_KEY_FILE')
