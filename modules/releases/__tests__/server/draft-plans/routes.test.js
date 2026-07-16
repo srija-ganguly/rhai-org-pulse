@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const { _setFetch, DATA_PREFIX } = require('../../../server/draft-plans/fetch')
 
@@ -30,15 +30,26 @@ function makeStorage(data = {}) {
   return {
     async readFromStorage(key) { return store[key] ? JSON.parse(JSON.stringify(store[key])) : null },
     async writeToStorage(key, value) { store[key] = value },
+    async listStorageFiles(dir) {
+      const prefix = dir.endsWith('/') ? dir : dir + '/'
+      const names = []
+      for (const key of Object.keys(store)) {
+        if (!key.startsWith(prefix)) continue
+        const rest = key.slice(prefix.length)
+        if (rest && rest.indexOf('/') === -1 && rest.endsWith('.json')) names.push(rest)
+      }
+      return names
+    },
     _store: store
   }
 }
 
 function makeRouter() {
-  const routes = { get: {}, post: {} }
+  const routes = { get: {}, post: {}, put: {} }
   return {
     get: vi.fn(function(path, ...handlers) { routes.get[path] = handlers }),
     post: vi.fn(function(path, ...handlers) { routes.post[path] = handlers }),
+    put: vi.fn(function(path, ...handlers) { routes.put[path] = handlers }),
     _routes: routes
   }
 }
@@ -47,8 +58,20 @@ function makeRes() {
   const res = {
     _status: 200,
     _json: null,
+    _headers: {},
+    headersSent: false,
+    writableEnded: false,
     status(code) { res._status = code; return res },
-    json(data) { res._json = data; return res }
+    set(key, value) { res._headers[key] = value; return res },
+    setHeader(key, value) { res._headers[key] = value; return res },
+    getHeader(key) { return res._headers[key] },
+    json(data) { res._json = data; res.headersSent = true; return res },
+    send(data) {
+      res._json = typeof data === 'string' ? { error: data } : data
+      res.headersSent = true
+      res.writableEnded = true
+      return res
+    }
   }
   return res
 }
@@ -80,18 +103,44 @@ async function callRoute(router, method, path, req = {}) {
   const handlers = routes[path]
   if (!handlers) throw new Error(`No route registered for ${method.toUpperCase()} ${path}`)
 
-  const finalHandler = handlers[handlers.length - 1]
   const res = makeRes()
   const fullReq = { query: {}, params: {}, body: {}, ...req }
-  await finalHandler(fullReq, res)
+  let idx = 0
+
+  async function run() {
+    while (idx < handlers.length) {
+      const handler = handlers[idx++]
+      let advanced = false
+      const maybePromise = handler(fullReq, res, function next(err) {
+        if (err) throw err
+        advanced = true
+      })
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        await maybePromise
+      }
+      // Terminal handler (no next call) ends the chain
+      if (!advanced) break
+    }
+  }
+
+  await run()
   return res
 }
 
 describe('draft-plans routes', () => {
+  const prevDemo = process.env.DEMO_MODE
+
   beforeEach(() => {
     vi.clearAllMocks()
     _setFetch(mockFetch)
     vi.resetModules()
+    // Existing editor route tests exercise demo impersonation path
+    process.env.DEMO_MODE = 'true'
+  })
+
+  afterEach(() => {
+    if (prevDemo === undefined) delete process.env.DEMO_MODE
+    else process.env.DEMO_MODE = prevDemo
   })
 
   describe('GET /releases', () => {
@@ -409,6 +458,208 @@ describe('draft-plans routes', () => {
       expect(result.lastFetchTimestamp).toBe('2026-07-08T12:00:00Z')
       expect(result.fileCount).toBe(2)
       expect(result.tokenSource).toBe('GITLAB_TOKEN')
+    })
+  })
+
+  describe('GET /cycles', () => {
+    it('returns demo 3.6 cycle and both products', async () => {
+      const { router } = await setupRouter()
+      const res = await callRoute(router, 'get', '/cycles', { query: { product: 'RHOAI' } })
+
+      expect(res._status).toBe(200)
+      expect(res._json.product).toBe('RHOAI')
+      expect(res._json.products).toEqual(['RHOAI', 'RHAII'])
+      expect(res._json.defaultVersion).toBe('3.6')
+      expect(res._json.cycles.some(c => c.version === '3.6' && c.demoMode)).toBe(true)
+    })
+
+    it('prefers stored pipeline draft over demo for same version', async () => {
+      const { router } = await setupRouter({
+        [`${DATA_PREFIX}/drafts/RHOAI/3.6.json`]: {
+          version: '3.6',
+          generatedAt: '2026-07-15T00:00:00Z',
+          candidates: [
+            { key: 'RHAISTRAT-1', summary: 'Stored', basePlacement: 'EA1', component: 'KubeRay' }
+          ],
+          ceilingsByComponent: {}
+        }
+      })
+
+      const res = await callRoute(router, 'get', '/cycles', { query: { product: 'RHOAI' } })
+      const cycle = res._json.cycles.find(c => c.version === '3.6')
+      expect(cycle.source).toBe('pipeline')
+      expect(cycle.demoMode).toBe(false)
+      expect(cycle.candidateCount).toBe(1)
+    })
+  })
+
+  describe('GET /editor/:version', () => {
+    it('returns demo fixture for 3.6 when no stored draft', async () => {
+      const { router } = await setupRouter()
+      const res = await callRoute(router, 'get', '/editor/:version', {
+        params: { version: '3.6' },
+        query: { product: 'RHOAI' }
+      })
+
+      expect(res._status).toBe(200)
+      expect(res._json.draft.demoMode).toBe(true)
+      expect(res._json.draft.candidates.length).toBeGreaterThan(0)
+      expect(res._json.edits).toEqual({})
+      expect(res._json.meta.planVersion).toBe('3.6')
+      expect(res._json.session).toBeTruthy()
+      expect(res._json.session.canImpersonate).toBe(true)
+    })
+
+    it('rejects unknown product', async () => {
+      const { router } = await setupRouter()
+      const res = await callRoute(router, 'get', '/editor/:version', {
+        params: { version: '3.6' },
+        query: { product: '../etc/passwd' }
+      })
+      expect(res._status).toBe(400)
+      expect(res._json.error).toContain('Unknown product')
+    })
+
+    it('prefers stored draft over demo', async () => {
+      const { router } = await setupRouter({
+        [`${DATA_PREFIX}/drafts/RHOAI/3.6.json`]: {
+          version: '3.6',
+          generatedAt: '2026-07-15T00:00:00Z',
+          candidates: [
+            {
+              key: 'RHAISTRAT-1',
+              summary: 'Stored',
+              basePlacement: 'EA1',
+              component: 'KubeRay',
+              assignee: 'A'
+            }
+          ],
+          ceilingsByComponent: { KubeRay: { EA1: 2, EA2: 0, GA: 1 } }
+        }
+      })
+
+      const res = await callRoute(router, 'get', '/editor/:version', {
+        params: { version: '3.6' },
+        query: { product: 'RHOAI' }
+      })
+
+      expect(res._json.draft.demoMode).toBe(false)
+      expect(res._json.draft.candidates).toHaveLength(1)
+      expect(res._json.draft.candidates[0].key).toBe('RHAISTRAT-1')
+      expect(res._json.ceilingsByComponent.KubeRay.EA1).toBe(2)
+    })
+  })
+
+  describe('PUT /editor/:version', () => {
+    it('persists edits meta and audit', async () => {
+      const { router, storage } = await setupRouter()
+      const res = await callRoute(router, 'put', '/editor/:version', {
+        params: { version: '3.6' },
+        query: { product: 'RHOAI' },
+        body: {
+          edits: { 'RHAISTRAT-1': { decision: 'move', placement: 'EA2' } },
+          meta: { planVersion: '3.6', currentUser: 'Admin', frozenEvents: {} },
+          audit: [{ action: 'decision', detail: 'test' }]
+        },
+        userEmail: 'admin@test.com',
+        isAdmin: true
+      })
+
+      expect(res._status).toBe(200)
+      expect(res._json.status).toBe('saved')
+      const stored = storage._store[`${DATA_PREFIX}/editor/RHOAI/3.6.json`]
+      expect(stored.edits['RHAISTRAT-1'].placement).toBe('EA2')
+      expect(stored.audit).toHaveLength(1)
+      expect(stored.meta.isPlanAdmin).toBe(true)
+    })
+
+    it('rejects unknown product', async () => {
+      const { router } = await setupRouter()
+      const res = await callRoute(router, 'put', '/editor/:version', {
+        params: { version: '3.6' },
+        query: { product: 'NOPE' },
+        body: { edits: {}, meta: {}, audit: [] }
+      })
+      expect(res._status).toBe(400)
+      expect(res._json.error).toContain('Unknown product')
+    })
+
+    it('rejects missing edits', async () => {
+      const { router } = await setupRouter()
+      const res = await callRoute(router, 'put', '/editor/:version', {
+        params: { version: '3.6' },
+        body: { meta: {} }
+      })
+      expect(res._status).toBe(400)
+    })
+
+    it('rejects foreign-row edits and Admin impersonation outside DEMO_MODE', async () => {
+      process.env.DEMO_MODE = 'false'
+      process.env.VITE_DEMO_MODE = 'false'
+      const { router, storage } = await setupRouter({
+        [`${DATA_PREFIX}/drafts/RHOAI/3.6.json`]: {
+          version: '3.6',
+          candidates: [
+            { key: 'F-1', summary: 'Alice feature', basePlacement: 'EA1', assignee: 'Alice', component: 'KubeRay' },
+            { key: 'F-2', summary: 'Owner feature', basePlacement: 'EA1', assignee: 'abellusci', component: 'KubeRay' }
+          ],
+          ceilingsByComponent: { KubeRay: { EA1: 5, EA2: 5, GA: 5 } }
+        }
+      })
+
+      const foreign = await callRoute(router, 'put', '/editor/:version', {
+        params: { version: '3.6' },
+        query: { product: 'RHOAI' },
+        userEmail: 'abellusci@redhat.com',
+        userUid: 'abellusci',
+        isAdmin: false,
+        body: {
+          edits: { 'F-1': { decision: 'descope', placement: null } },
+          meta: { currentUser: 'Admin', frozenEvents: {} },
+          audit: []
+        }
+      })
+      expect(foreign._status).toBe(403)
+
+      const own = await callRoute(router, 'put', '/editor/:version', {
+        params: { version: '3.6' },
+        query: { product: 'RHOAI' },
+        userEmail: 'abellusci@redhat.com',
+        userUid: 'abellusci',
+        isAdmin: false,
+        body: {
+          edits: { 'F-2': { decision: 'move', placement: 'EA2' } },
+          meta: { currentUser: 'Admin', frozenEvents: {} },
+          audit: []
+        }
+      })
+      expect(own._status).toBe(200)
+      expect(own._json.meta.currentUser).toBe('abellusci')
+      expect(own._json.meta.isPlanAdmin).toBe(false)
+      const stored = storage._store[`${DATA_PREFIX}/editor/RHOAI/3.6.json`]
+      expect(stored.meta.currentUser).toBe('abellusci')
+      expect(stored.edits['F-2'].placement).toBe('EA2')
+    })
+
+    it('rate-limits excessive editor saves', async () => {
+      const { router } = await setupRouter()
+      const req = {
+        params: { version: '3.6' },
+        query: { product: 'RHOAI' },
+        userEmail: 'rate-limit@test.com',
+        isAdmin: true,
+        body: {
+          edits: {},
+          meta: { planVersion: '3.6', currentUser: 'Admin', frozenEvents: {} },
+          audit: []
+        }
+      }
+      let last = null
+      for (let i = 0; i < 61; i++) {
+        last = await callRoute(router, 'put', '/editor/:version', req)
+      }
+      expect(last._status).toBe(429)
+      expect(last._json.error).toMatch(/Rate limit exceeded/)
     })
   })
 })
