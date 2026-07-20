@@ -5,6 +5,7 @@ const {
   writeComponentOnboardingAtomic,
   upsertComponent,
   getLatestProjection,
+  projectComponent,
   countHistoryEntries
 } = require('./storage');
 
@@ -124,13 +125,23 @@ module.exports = function registerComponentOnboardingRoutes(router, context) {
    *   get:
    *     summary: Get all component onboarding data
    *     tags: [AI Impact - Component Onboarding]
+   *     parameters:
+   *       - in: query
+   *         name: version
+   *         required: false
+   *         schema:
+   *           type: string
+   *         description: Filter results by targetVersion (exact match).
    *     responses:
    *       200:
    *         description: All component onboarding data with latest projections
    */
   router.get('/component-onboarding', requireScope('ai-impact:read'), async function(req, res) {
     const data = await readComponentOnboarding(readFromStorage);
-    res.json(getLatestProjection(data));
+    const version = typeof req.query.version === 'string' && req.query.version.trim()
+      ? req.query.version.trim()
+      : null;
+    res.json(getLatestProjection(data, version ? { version } : undefined));
   });
 
   // ─── Parameterized routes after ───
@@ -159,6 +170,9 @@ module.exports = function registerComponentOnboardingRoutes(router, context) {
     if (!entry) {
       return res.status(404).json({ error: 'Not found' });
     }
-    res.json({ latest: entry.latest, history: entry.history });
+    res.json({
+      latest: projectComponent(entry),
+      history: entry.history
+    });
   });
 };

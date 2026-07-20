@@ -317,21 +317,21 @@ test.describe('AI Impact Build & Release @ai-impact', () => {
     logCapturedErrors(page, testInfo);
   });
 
-  test('"New" metric card renders in the header', async ({ page }) => {
-    const newCard = page.locator('text=New').first();
-    await expect(newCard).toBeVisible();
+  test('"In Queue" metric card renders in the header', async ({ page }) => {
+    const inQueueCard = page.locator('text=In Queue').first();
+    await expect(inQueueCard).toBeVisible();
 
-    const pendingLabel = page.locator('text=pending start');
-    await expect(pendingLabel).toBeVisible();
+    const waitingLabel = page.locator('text=waiting');
+    await expect(waitingLabel).toBeVisible();
 
     expect(page.errors).toHaveLength(0);
   });
 
-  test('"New" status badge displays with blue styling', async ({ page }) => {
-    const newBadge = page.locator('.rounded-full:has-text("New")').first();
-    await expect(newBadge).toBeVisible();
+  test('"In Queue" status badge displays with blue styling', async ({ page }) => {
+    const inQueueBadge = page.locator('.rounded-full:has-text("In Queue")').first();
+    await expect(inQueueBadge).toBeVisible();
 
-    const hasBlueStyling = await newBadge.evaluate(el => {
+    const hasBlueStyling = await inQueueBadge.evaluate(el => {
       return el.className.includes('bg-blue-100') || el.className.includes('blue');
     });
     expect(hasBlueStyling).toBe(true);
@@ -340,7 +340,8 @@ test.describe('AI Impact Build & Release @ai-impact', () => {
   });
 
   test('target version dropdown appears and filters correctly', async ({ page }) => {
-    const versionSelect = page.locator('select').filter({ hasText: 'All versions' });
+    // Page header and table each have an "All versions" select; use the header filter.
+    const versionSelect = page.locator('select').filter({ hasText: 'All versions' }).first();
     await expect(versionSelect).toBeVisible();
 
     const options = await versionSelect.locator('option').allTextContents();
@@ -356,14 +357,14 @@ test.describe('AI Impact Build & Release @ai-impact', () => {
     expect(page.errors).toHaveLength(0);
   });
 
-  test('status filter includes "New" option and filters correctly', async ({ page }) => {
+  test('status filter includes "In Queue" option and filters correctly', async ({ page }) => {
     const statusSelect = page.locator('select').filter({ hasText: 'All statuses' });
     await expect(statusSelect).toBeVisible();
 
     const options = await statusSelect.locator('option').allTextContents();
-    expect(options).toContain('New');
+    expect(options).toContain('In Queue');
 
-    await statusSelect.selectOption('new');
+    await statusSelect.selectOption('in_queue');
     await page.waitForTimeout(500);
 
     const rows = page.locator('table tbody tr');
@@ -375,7 +376,7 @@ test.describe('AI Impact Build & Release @ai-impact', () => {
       const badge = row.locator('.rounded-full');
       if (await badge.count() > 0) {
         const text = await badge.first().textContent();
-        expect(text.trim()).toBe('New');
+        expect(text.trim()).toBe('In Queue');
       }
     }
 
