@@ -1,30 +1,80 @@
 {
   "name": "Dashboard Sync",
   "slug": "dashboard-sync",
-  "description": "PoC: Collector integration from AIPCC Dashboard — syncs products, repositories, and drops from GitLab config into MongoDB",
+  "description": "PoC: Full collector integration from AIPCC Dashboard — syncs all data from GitLab, registries, Konflux, and Jira into MongoDB",
   "icon": "RefreshCw",
   "order": 22,
-  "defaultEnabled": false,
+  "defaultEnabled": true,
   "requires": [],
   "server": {
     "entry": "./server/index.js"
   },
   "secrets": {
-    "platform": ["gitlab"],
+    "platform": ["gitlab", "jira"],
     "module": [
       {
         "key": "DASHBOARD_SYNC_MONGODB_URI",
-        "description": "MongoDB connection string for collector PoC (default: mongodb://localhost:27017/dashboard-sync-poc)",
+        "description": "MongoDB connection string (e.g. mongodb://user:pass@localhost:27017/db?authSource=admin)",
         "required": true
       },
       {
         "key": "DASHBOARD_GITLAB_PROJECT",
-        "description": "URL-encoded GitLab project path for AIPCC Dashboard repo (default: redhat%2Frhel-ai%2Fci-cd%2Fdashboard)",
+        "description": "URL-encoded GitLab project path (default: redhat%2Frhel-ai%2Fci-cd%2Fdashboard)",
         "required": false
       },
       {
         "key": "DASHBOARD_GITLAB_BRANCH",
         "description": "Branch to read config from (default: main)",
+        "required": false
+      },
+      {
+        "key": "QUAY_USERNAME",
+        "description": "Quay.io username or robot account for Docker Registry V2 API",
+        "required": false
+      },
+      {
+        "key": "QUAY_PASSWORD",
+        "description": "Quay.io password or robot token",
+        "required": false
+      },
+      {
+        "key": "REGISTRY_REDHAT_USERNAME",
+        "description": "registry.redhat.io username",
+        "required": false
+      },
+      {
+        "key": "REGISTRY_REDHAT_PASSWORD",
+        "description": "registry.redhat.io password",
+        "required": false
+      },
+      {
+        "key": "REGISTRY_STAGE_REDHAT_USERNAME",
+        "description": "registry.stage.redhat.io username",
+        "required": false
+      },
+      {
+        "key": "REGISTRY_STAGE_REDHAT_PASSWORD",
+        "description": "registry.stage.redhat.io password",
+        "required": false
+      },
+      {
+        "key": "SSO_CLIENT_ID",
+        "description": "Red Hat SSO client ID for Atlas SBOM API",
+        "required": false
+      },
+      {
+        "key": "SSO_CLIENT_SECRET",
+        "description": "Red Hat SSO client secret for Atlas SBOM API",
+        "required": false
+      },
+      {
+        "key": "KONFLUX_DASHBOARD_SA_AI_TENANT",
+        "description": "Konflux K8s service account token for ai-tenant namespace",
+        "required": false
+      },
+      {
+        "key": "KONFLUX_DASHBOARD_SA_RHEL_AI_TENANT",
+        "description": "Konflux K8s service account token for rhel-ai-tenant namespace",
         "required": false
       }
     ]

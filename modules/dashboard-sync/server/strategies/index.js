@@ -23,3 +23,4 @@ function getAvailableStrategies() {
 module.exports = { registerStrategy, getStrategy, getAvailableStrategies }
 
 require('./gitlab-tags')
+require('./artifact-commits')

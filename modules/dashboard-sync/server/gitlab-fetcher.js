@@ -92,6 +92,18 @@ async function listTreeAtRef({ token, projectId, dir, ref, baseUrl }) {
   return gitlabApi(path, token, baseUrl)
 }
 
+async function compareCommits({ token, projectId, from, to, baseUrl }) {
+  const path = `/projects/${projectId}/repository/compare?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+  const data = await gitlabApi(path, token, baseUrl)
+  return (data.commits || []).map(c => ({
+    sha: c.id,
+    short_id: c.short_id,
+    title: c.title,
+    author_name: c.author_name,
+    committed_date: c.committed_date,
+  }))
+}
+
 module.exports = {
   gitlabApi,
   gitlabRaw,
@@ -102,5 +114,6 @@ module.exports = {
   fetchCommitRefs,
   fetchFileAtRef,
   listTreeAtRef,
+  compareCommits,
   _setFetch,
 }
