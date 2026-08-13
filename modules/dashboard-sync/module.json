@@ -1,0 +1,32 @@
+{
+  "name": "Dashboard Sync",
+  "slug": "dashboard-sync",
+  "description": "PoC: Collector integration from AIPCC Dashboard — syncs products, repositories, and drops from GitLab config into MongoDB",
+  "icon": "RefreshCw",
+  "order": 22,
+  "defaultEnabled": false,
+  "requires": [],
+  "server": {
+    "entry": "./server/index.js"
+  },
+  "secrets": {
+    "platform": ["gitlab"],
+    "module": [
+      {
+        "key": "DASHBOARD_SYNC_MONGODB_URI",
+        "description": "MongoDB connection string for collector PoC (default: mongodb://localhost:27017/dashboard-sync-poc)",
+        "required": true
+      },
+      {
+        "key": "DASHBOARD_GITLAB_PROJECT",
+        "description": "URL-encoded GitLab project path for AIPCC Dashboard repo (default: redhat%2Frhel-ai%2Fci-cd%2Fdashboard)",
+        "required": false
+      },
+      {
+        "key": "DASHBOARD_GITLAB_BRANCH",
+        "description": "Branch to read config from (default: main)",
+        "required": false
+      }
+    ]
+  }
+}
