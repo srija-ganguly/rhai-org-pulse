@@ -70,7 +70,7 @@ Day 6-8:   Deployment (manifests, secrets, OpenShift) + validation against prod 
 
 5. **Incremental collection works identically.** The same incremental patterns from the Dashboard (check existing, skip known) work in JavaScript. Second-run timing: 4.9s for drops vs 15+ min first run.
 
-6. **One new npm dependency.** The entire PoC adds only `mongodb` (native driver) as a new dependency. Everything else uses existing Org Pulse dependencies (`js-yaml`, `adm-zip`) or Node.js built-ins (`fetch`, `crypto`, `zlib`).
+6. **Zero new npm dependencies.** Initial PoC used the `mongodb` native driver, later swapped to `mongoose` (already installed via `@org-pulse/core`) to align with core's MongoDB migration pattern (PR #98). Final state adds no new packages. Everything else uses existing Org Pulse dependencies (`js-yaml`, `adm-zip`) or Node.js built-ins (`fetch`, `crypto`, `zlib`).
 
 7. **The code is 55% smaller.** ~5,200 JS lines vs ~11,563 Python lines. No type annotations, no class boilerplate, Org Pulse's refresh registry replaces the K8s dispatcher/runner layer.
 
@@ -173,13 +173,13 @@ The drops and artifacts gaps are **not code bugs** — they result from:
 | Python (Dashboard) | JavaScript (PoC) | Notes |
 |---|---|---|
 | `python-gitlab` | Native `fetch` + `PRIVATE-TOKEN` | No SDK needed |
-| `beanie` (Beanie ODM) | `mongodb` (native driver) | No ODM needed for PoC |
+| `beanie` (Beanie ODM) | `mongodb` (native driver), later swapped to `mongoose` (via `@org-pulse/core`) for compatibility with core's MongoDB migration pattern | Initial results validated with native driver; Mongoose swap confirmed compatible |
 | `pydantic` | Plain objects | No validation layer |
 | `requests` + `urllib3` | Native `fetch` | Built into Node.js |
 | `kubernetes` | Native `fetch` + bearer token | K8s API is just REST |
 | `adm-zip` | `adm-zip` (already in Org Pulse) | Same library |
 | `js-yaml` | `js-yaml` (already in Org Pulse) | Same library |
-| **New dependency** | `mongodb` 7.5.0 | Only new npm package added |
+| **New dependency** | None — initially used `mongodb` 7.5.0, later removed after swapping to `mongoose` (already in `@org-pulse/core`) | Zero new npm packages in final state |
 
 ### Patterns That Translated Cleanly
 
@@ -218,11 +218,19 @@ The drops and artifacts gaps are **not code bugs** — they result from:
 | Per-collector sync | Works — `POST /sync/:collector` for targeted testing |
 | Incremental collection | Works — same pattern as Dashboard (check existing, skip known) |
 
+### Mongoose Integration
+
+Following the pattern established in [org-pulse-core PR #98](https://github.com/red-hat-data-services/org-pulse-core/pull/98) (team-store MongoDB migration), the PoC uses `mongoose.createConnection()` instead of the native `mongodb` driver. This aligns with how core is wiring MongoDB — direct model injection from `dev-server.js`, same Mongoose version (9.8.0) already in `@org-pulse/core`'s dependencies.
+
+- **Zero new dependencies** — Mongoose is already installed via `@org-pulse/core`. The `mongodb` devDependency was removed entirely.
+- **Compatible with `context.db.model()`** — When the scoped model factory lands (Phase 1 of the MongoDB migration design doc), collectors can switch to it with a one-line wiring change. The Mongoose usage is already compatible.
+- **Spot-checked** — Products and drops collectors validated with Mongoose after the swap, confirming correct data flow through `mongoose.createConnection()` → `connection.db.collection()` → MongoDB.
+
 ### What's New (Not in Org Pulse Today)
 
 | Addition | Impact |
 |---|---|
-| MongoDB connection | First module to use a database. Uses native `mongodb` driver directly. When `context.db` lands, collectors switch to the scoped model factory — only the wiring changes, not the collector logic |
+| MongoDB connection | First module to use a database. Uses `mongoose.createConnection()` matching core's approach (PR #98). When `context.db` lands, collectors switch to the scoped model factory — only the wiring changes, not the collector logic |
 | External service clients | Pyxis, Atlas/SSO, Konflux K8s, Docker Registry V2 — all new. Currently module-local; could be promoted to `shared/server/` if other modules need them |
 | Long-running sync operations | Images collector takes 15+ min. May need background job pattern or higher refresh handler timeout for production |
 

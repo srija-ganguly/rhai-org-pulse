@@ -1,32 +1,26 @@
 'use strict'
 
-const { MongoClient } = require('mongodb')
+const mongoose = require('mongoose')
 
-const DEFAULT_URI = 'mongodb://localhost:27017/dashboard-sync-poc'
-
-let _client = null
-let _db = null
+let _connection = null
 
 async function connect(uri) {
-  if (_client) return _db
-  const connUri = uri || DEFAULT_URI
-  _client = new MongoClient(connUri)
-  await _client.connect()
-  _db = _client.db()
-  return _db
+  if (_connection) return _connection
+  _connection = await mongoose.createConnection(uri)
+  console.log('[dashboard-sync] Mongoose connected to', uri.replace(/\/\/[^@]+@/, '//<redacted>@'))
+  return _connection
 }
 
 async function disconnect() {
-  if (_client) {
-    await _client.close()
-    _client = null
-    _db = null
+  if (_connection) {
+    await _connection.close()
+    _connection = null
   }
 }
 
 function getCollection(name) {
-  if (!_db) throw new Error('MongoDB not connected — call connect() first')
-  return _db.collection(name)
+  if (!_connection) throw new Error('MongoDB not connected — call connect() first')
+  return _connection.db.collection(name)
 }
 
 async function upsertMany(collectionName, docs, keyField = 'key') {
@@ -46,7 +40,11 @@ async function upsertMany(collectionName, docs, keyField = 'key') {
 }
 
 function isConnected() {
-  return _client !== null && _db !== null
+  return _connection !== null && _connection.readyState === 1
 }
 
-module.exports = { connect, disconnect, getCollection, upsertMany, isConnected }
+function getConnection() {
+  return _connection
+}
+
+module.exports = { connect, disconnect, getCollection, upsertMany, isConnected, getConnection }

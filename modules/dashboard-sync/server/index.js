@@ -139,10 +139,7 @@ module.exports = function registerRoutes(router, context) {
 
   const mongoUri = secrets.DASHBOARD_SYNC_MONGODB_URI
   if (mongoUri) {
-    console.log('[dashboard-sync] Connecting to MongoDB:', mongoUri.replace(/\/\/[^@]+@/, '//<redacted>@'))
-    db.connect(mongoUri).then(() => {
-      console.log('[dashboard-sync] Connected to MongoDB')
-    }).catch(err => {
+    db.connect(mongoUri).catch(err => {
       console.error('[dashboard-sync] MongoDB connection failed:', err.message)
     })
   } else {
